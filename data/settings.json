@@ -1,0 +1,58 @@
+{
+    "token": "MTIwNzg1MjIyNzM2MDcyNzA2MA.Gykl6W.xlvVQqvRr0TOlTnzvHwdqCCAp4C5n-lJ6l_2qk",
+    "client": "1207852227360727060",
+    "tag": "!",
+    "case": "false",
+    "separator": "\\s+",
+    "commandsOrder": [
+        "WwTli",
+        [
+            {
+                "name": "User Commands",
+                "_id": "uvNbC",
+                "isOpen": true,
+                "options": 0,
+                "color": "#ffffff",
+                "icon": ""
+            },
+            "czMCT",
+            "myUxm"
+        ],
+        [
+            {
+                "name": "Admin Commands",
+                "_id": "baiHb",
+                "isOpen": true,
+                "options": 0,
+                "color": "#ffffff",
+                "icon": ""
+            },
+            "aFYLQ",
+            "xFRai",
+            "XpdIQ",
+            "TBTcz",
+            "eKmOP"
+        ]
+    ],
+    "eventsOrder": ["GzNRJ", "OjWde"],
+    "modules": {
+        "discord.js": ["", true],
+        "fstorm"    : ["", true],
+        "jimp"      : ["", true]
+    },
+    "permissionsint": "8",
+    "Bot Intents": {
+        "customData": { "Bot Intents": {"intents": -1} }
+    },
+    "Bot Partials": {
+        "customData": {
+            "Bot Partials": {
+                "partials": [
+                    "USER"        , "GUILD_MEMBER", "MESSAGE"     ,
+                    "REACTION"    , "CHANNEL"
+                ]
+            }
+        }
+    },
+    "ownerId": "557809201804607490"
+}

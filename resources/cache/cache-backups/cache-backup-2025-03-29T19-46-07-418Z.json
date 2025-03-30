@@ -1,0 +1,5 @@
+{
+  "gay": "{\"type\":\"txt\", \"content\":\"meow meow meow meow?\"}",
+  "ben": "{\"type\":\"Wfile\", \"content\":\"https://th.bing.com/th/id/OIP.ijU4v-YT7EhY8Eubf9D9AQHaEK?rs=1&pid=ImgDetMain\"}",
+  "source": "{\"type\":\"Lfile\", \"content\":\"./resources/scripts/process-activations.js\"}"
+}

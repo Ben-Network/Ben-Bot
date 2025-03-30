@@ -1,0 +1,38 @@
+[
+  {
+    "idkeywords": 2,
+    "word": "ben",
+    "action": "{\"type\":\"Wfile\", \"content\":\"https://cdn.discordapp.com/attachments/1355733880375611585/1355736220436664441/ben.jpg?ex=67ea033f&is=67e8b1bf&hm=09bd4230cb2cde1ca780dad762c28161277dcd4e24c53d5cad29a789eb62b43b&\"}",
+    "authorID": 557809201804607500,
+    "dateAdded": "2025-03-29T06:34:58.000Z",
+    "activations": null,
+    "notes": "ben >:3"
+  },
+  {
+    "idkeywords": 4,
+    "word": "nobodycares",
+    "action": "{\"type\":\"txt\", \"content\":\"I LOVE NOBODYCARES -kindkid\"}",
+    "authorID": 557809201804607500,
+    "dateAdded": "2025-03-29T23:39:49.000Z",
+    "activations": null,
+    "notes": "mrowwww"
+  },
+  {
+    "idkeywords": 6,
+    "word": "kindkid",
+    "action": "{\"type\":\"txt\",\"content\":\"I love boys :3\"}",
+    "authorID": null,
+    "dateAdded": null,
+    "activations": null,
+    "notes": "meow"
+  },
+  {
+    "idkeywords": 7,
+    "word": "boys",
+    "action": "{\"type\":\"txt\",\"content\":\"I love boys >:3\"}",
+    "authorID": null,
+    "dateAdded": null,
+    "activations": null,
+    "notes": null
+  }
+]
