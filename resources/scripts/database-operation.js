@@ -4,13 +4,10 @@ const { dbConfig, cacheFilePath, table } = require('./resources/scripts/MYSQL_ca
 const { updateCache } = require('./resources/scripts/MYSQL_cache/cache-update');
 const { validateCache } = require('./resources/scripts/MYSQL_cache/cache-integrity-check');
 
-// Create a database connection using the configuration
 const connection = mysql.createConnection(dbConfig);
 
-// Function to handle database operations
 async function operation(opType, input, action, authorID, notes, readType, source) {
     try {
-        // Validate required inputs
         if (!opType) {
             throw new Error('Operation type (opType) is required.');
         }
@@ -46,9 +43,8 @@ async function operation(opType, input, action, authorID, notes, readType, sourc
     }
 }
 
-// Function to add a new command
+
 async function addCommand(input, action, authorID, notes) {
-    // Ensure action is JSON
     if (typeof action === 'object') {
         action = JSON.stringify(action);
     }
@@ -56,11 +52,10 @@ async function addCommand(input, action, authorID, notes) {
         throw new Error('Action must be a valid JSON string.');
     }
 
-    // Prepare the query and parameters
     const query = `INSERT INTO {$table} (word, action, authorID, notes, activations) VALUES (?, ?, ?, ?, ?)`;
-    const params = [input, action, authorID || null, notes || null, null]; // activations is set to NULL
+    const params = [input, action, authorID || null, notes || null, null];
 
-    console.log(`Inserting into ${table}:`, params); // Debugging
+    console.log(`Inserting into ${table}:`, params);
 
     return new Promise((resolve, reject) => {
         connection.query(query, params, async (err, results) => {
@@ -69,7 +64,7 @@ async function addCommand(input, action, authorID, notes) {
                 return reject(err);
             }
             console.log('Command added successfully:', results);
-            await updateCache(); // Update the cache after adding
+            await updateCache();
             try {await validateCache(); 
                 Actions.storeValue(JSON.stringify({ status: 200, Message: `Command added to MYSQL, cache has updated & passed validation.` }), 1, 'output', cache);
             }
@@ -81,10 +76,9 @@ async function addCommand(input, action, authorID, notes) {
     });
 }
 
-// Helper function to validate JSON
 function validateAction(action) {
     try {
-        JSON.parse(action); // Check if it's valid JSON
+        JSON.parse(action);
         return true;
     } catch (err) {
         console.error('Invalid action JSON:', err.message);
@@ -92,7 +86,6 @@ function validateAction(action) {
     }
 }
 
-// Function to remove a command
 async function removeCommand(input) {
     const query = `DELETE FROM ${table} WHERE word = ?`;
     const params = [input];
@@ -104,7 +97,7 @@ async function removeCommand(input) {
                 return reject(err);
             }
             console.log('Command removed successfully:', results);
-            await updateCache(); // Update the cache after removing
+            await updateCache();
             try {await validateCache(); 
                 Actions.storeValue(JSON.stringify({ status: 200, Message: `Command removed from MYSQL, cache has updated & passed validation.` }), 1, 'output', cache);
             }
@@ -116,7 +109,6 @@ async function removeCommand(input) {
     });
 }
 
-// Function to modify an existing command
 async function modifyCommand(input, action, notes) {
     const query = `UPDATE ${table} SET action = ?, notes = ? WHERE word = ?`;
     const params = [action, notes, input];
@@ -128,13 +120,12 @@ async function modifyCommand(input, action, notes) {
                 return reject(err);
             }
             console.log('Command modified successfully:', results);
-            await updateCache(); // Update the cache after modifying
+            await updateCache();
             resolve(results);
         });
     });
 }
 
-// Function to read from the cache
 async function readFromCache(readType, input) {
     try {
         const cacheData = JSON.parse(fs.readFileSync(cacheFilePath, 'utf8'));
@@ -162,7 +153,6 @@ async function readFromCache(readType, input) {
     }
 }
 
-// Function to read from the database with retries
 async function readFromDatabaseWithRetry(readType, input, retries = 3) {
     for (let attempt = 1; attempt <= retries; attempt++) {
         try {
@@ -176,7 +166,6 @@ async function readFromDatabaseWithRetry(readType, input, retries = 3) {
     }
 }
 
-// Function to read from the database
 async function readFromDatabase(readType, input) {
     let query;
     let params = [];
@@ -211,20 +200,18 @@ async function readFromDatabase(readType, input) {
     });
 }
 
-// Example usage
+
 (async () => {
     const opType = tempVars('opType');
     const input = tempVars('input');
     const action = {
-        type: tempVars('actionType'), // Call the function and use its return value
-        content: tempVars('actionContent') // Call the function and use its return value
+        type: tempVars('actionType'),
+        content: tempVars('actionContent')
     };
     const authorID = tempVars('authorID');
     const notes = tempVars('notes');
     const readType = tempVars('readType');
     const source = tempVars('source');
-
-    console.log(opType, input, action, authorID, notes, readType, source);
 
     await operation(opType, input, action, authorID, notes, readType, source);
 
@@ -232,7 +219,6 @@ async function readFromDatabase(readType, input) {
         Actions.callNextAction(cache);
     }
 
-    // Close the MySQL connection safely
     connection.end((err) => {
         if (err) {
             console.error('Error closing MySQL connection:', err.message);
