@@ -4,12 +4,12 @@ const path = require('path');
 module.exports = {
   // Database connection configuration
   dbConfig: {
-    host: 'process.env.HOST',
-    user: 'process.env.USER',
-    password: 'process.env.PASSWORD',
-    database: 'process.env.DATABASE',
+    host: process.env.HOST,
+    user: process.env.USER,
+    password: process.env.PASSWORD,
+    database: process.env.DATABASE,
   },
-  table: 'process.env.TABLE',
+  table: process.env.table,
 
   // Path to the cache file
   cacheFilePath: path.join(__dirname, '../../cache/cache.json'),

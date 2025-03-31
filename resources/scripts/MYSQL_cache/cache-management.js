@@ -20,17 +20,16 @@ function monitorCache() {
 }
 
 function createCacheBackup() {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const backupFilePath = path.join(backupDir, `cache-backup-${timestamp}.json`);
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupFilePath = path.join(cacheBackupPath, `cache-backup-${timestamp}.json`);
 
-  fs.copyFile(cacheFilePath, backupFilePath, (err) => {
-    if (err) {
-      console.error('Error creating cache backup:', err.message);
-    } else {
-      console.log('Cache backup created at:', backupFilePath);
-      truncateOldBackups();
-    }
-  });
+    fs.copyFileSync(cacheFilePath, backupFilePath);
+    console.log(`[SUCCESS] Cache backup created at: ${backupFilePath}`);
+    truncateOldBackups();
+  } catch (error) {
+    console.error(`[ERROR] Failed to create cache backup: ${error.message}`);
+  }
 }
 
 function listCacheBackups() {
@@ -116,26 +115,26 @@ function getDirectorySize(directoryPath) {
 }
 
 function truncateOldBackups() {
-  const maxSizeBytes = maxBackupSizeMB * 1024 * 1024;
-  let totalSize = getDirectorySize(backupDir);
-
-  if (totalSize > maxSizeBytes) {
-    console.log('Backup size exceeds limit. Truncating old backups...');
-    const files = fs.readdirSync(backupDir)
+  try {
+    const files = fs.readdirSync(cacheBackupPath)
       .map(file => ({
         name: file,
-        time: fs.statSync(path.join(backupDir, file)).mtime.getTime(),
+        time: fs.statSync(path.join(cacheBackupPath, file)).mtime.getTime(),
       }))
       .sort((a, b) => a.time - b.time);
 
+    let totalSize = files.reduce((sum, file) => sum + fs.statSync(path.join(cacheBackupPath, file.name)).size, 0);
+    const maxSizeBytes = maxBackupSizeMB * 1024 * 1024;
+
     for (const file of files) {
       if (totalSize <= maxSizeBytes) break;
-      const filePath = path.join(backupDir, file.name);
-      const fileSize = fs.statSync(filePath).size;
+      const filePath = path.join(cacheBackupPath, file.name);
+      totalSize -= fs.statSync(filePath).size;
       fs.unlinkSync(filePath);
-      totalSize -= fileSize;
-      console.log(`Deleted old backup: ${file.name}`);
+      console.log(`[INFO] Deleted old backup: ${file.name}`);
     }
+  } catch (error) {
+    console.error(`[ERROR] Failed to truncate old backups: ${error.message}`);
   }
 }
 

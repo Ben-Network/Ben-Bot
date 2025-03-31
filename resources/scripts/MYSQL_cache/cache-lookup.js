@@ -1,34 +1,24 @@
 const fs = require('fs');
 const { cacheFilePath } = require('./cache-config');
-const { trackCacheUsage } = require('./cache-management');
 
 function lookupInCache(keyword) {
-  try {
-    const data = fs.readFileSync(cacheFilePath, 'utf8');
-    let cache;
     try {
-      cache = JSON.parse(data);
-    } catch (jsonError) {
-      console.error('Error parsing JSON from cache:', jsonError.message);
-      return null;
-    }
+        console.log(`[INFO] Looking up keyword in cache: ${keyword}`);
+        const data = fs.readFileSync(cacheFilePath, 'utf8');
+        const cache = JSON.parse(data);
 
-    const match = cache.find((entry) => entry.word === keyword);
-    if (match) {
-      const action = JSON.parse(match.action);
-      console.log('Cache hit:', action);
-      trackCacheUsage('hits');
-      return action;
-    } else {
-      console.log('Cache miss: No action found for', keyword);
-      return null;
+        const match = cache.find(entry => entry.word === keyword);
+        if (match) {
+            console.log(`[SUCCESS] Cache hit for keyword: ${keyword}`);
+            return JSON.parse(match.action);
+        } else {
+            console.log(`[INFO] Cache miss for keyword: ${keyword}`);
+            return null;
+        }
+    } catch (error) {
+        console.error(`[ERROR] Failed to lookup keyword in cache: ${error.message}`);
+        return null;
     }
-  } catch (err) {
-    console.error('Error reading cache file:', err.message);
-    return null;
-  }
 }
-
-console.log('Exporting lookupInCache:', lookupInCache);
 
 module.exports = { lookupInCache };
