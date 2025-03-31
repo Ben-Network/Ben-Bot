@@ -1,7 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
-const modeConfig = require('./config/modeConfig'); // Import mode configuration
+const { Client, GatewayIntentBits, Events } = require('discord.js');
+const modeConfig = require('./modes/modeConfig'); // Import mode configuration
+const { commandsCollection } = require('./command-handler'); // Import commands from command-handler.js
 require('dotenv').config();
 const token = process.env.BOTTOKEN;
 
@@ -14,15 +15,8 @@ const client = new Client({
     ]
 });
 
-// Load commands
-client.commands = new Collection();
-const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-
-for (const file of commandFiles) {
-    const command = require(path.join(commandsPath, file));
-    client.commands.set(command.name, command);
-}
+// Attach commands to the client
+client.commands = commandsCollection;
 
 // Log the current mode
 modeConfig.logger.info(`Bot starting in ${modeConfig.mode} mode...`);

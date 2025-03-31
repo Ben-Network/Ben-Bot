@@ -5,9 +5,9 @@ const winston = require('winston');
 dotenv.config();
 
 const BOT_MODE = process.env.BOT_MODE || 'production'; // Default to production mode
-const LOG_TO_CONSOLE = process.env.LOG_TO_CONSOLE === 'true';
-const LOG_TO_FILE = process.env.LOG_TO_FILE === 'true';
-const HALT_ON_ERROR = process.env.HALT_ON_ERROR === 'true';
+const LOG_TO_CONSOLE = process.env.LOG_TO_CONSOLE || 'true';
+const LOG_TO_FILE = process.env.LOG_TO_FILE || 'false';
+const HALT_ON_ERROR = process.env.HALT_ON_ERROR || 'false';
 const REPLAY_LOG_FILE = process.env.REPLAY_LOG_FILE || null;
 
 // Validate BOT_MODE
