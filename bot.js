@@ -26,13 +26,10 @@ modeConfig.logger.info(`Bot starting in ${modeConfig.mode} mode...`);
 
 // Mode-specific behavior
 if (modeConfig.isInteractive) {
-    modeConfig.logger.info('Running in Interactive Terminal Mode...');
     require('./modes/interactiveMode')(client, modeConfig);
 } else if (modeConfig.isDebug) {
-    modeConfig.logger.info('Running in Debug Mode...');
     require('./modes/debugMode')(client, modeConfig);
 } else if (modeConfig.isProduction) {
-    modeConfig.logger.info('Running in Production Mode...');
     require('./modes/productionMode')(client, modeConfig);
 }
 
