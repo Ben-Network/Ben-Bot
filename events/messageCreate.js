@@ -7,37 +7,47 @@ const ignoreFilePath = path.join(__dirname, '../resources/data/ignored-users.jso
 // Global variables for cooldown management
 let globalVariables = {
     lastMSGRunTime: 0,
-    GlobalCooldownTime: 5000 // Default 5 seconds, adjust as needed
+    GlobalCooldownTime: 5000, // Default 5 seconds, adjust as needed
 };
 
 module.exports = {
     name: 'messageCreate', // Event name for the messageCreate event
     async execute(message) {
+        console.log(`[DEBUG] messageCreate event triggered by user: ${message.author.id}`);
+
         // Ignore bot messages
-        if (message.author.bot) return;
+        if (message.author.bot) {
+            console.log('[DEBUG] Ignored bot message.');
+            return;
+        }
 
         const currentTime = Date.now();
 
         // Check cooldown
         if (currentTime - globalVariables.lastMSGRunTime < globalVariables.GlobalCooldownTime) {
-            return; // Do nothing if on cooldown
+            console.log('[DEBUG] Cooldown active. Ignoring message.');
+            return;
         }
 
         // Check if user is ignored
         const isIgnored = getMemberData(message.author.id);
         if (isIgnored) {
-            return; // Do nothing if user is ignored
+            console.log(`[DEBUG] User ${message.author.id} is ignored.`);
+            return;
         }
 
         // Process activations
         const result = await processActivations(message.content);
         if (!result) {
-            return; // Do nothing if no activation matches
+            console.log('[DEBUG] No activation matched the message.');
+            return;
         }
 
         // Handle result
         globalVariables.lastMSGRunTime = currentTime;
         const { type, content } = result;
+
+        console.log(`[DEBUG] Activation matched. Type: ${type}, Content: ${content}`);
 
         switch (type) {
             case 'txt':

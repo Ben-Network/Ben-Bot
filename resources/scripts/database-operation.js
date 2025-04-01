@@ -4,6 +4,7 @@ const { dbConfig, cacheFilePath, table } = require('./MYSQL_cache/cache-config')
 const { updateCache } = require('./MYSQL_cache/cache-update');
 const { validateCache } = require('./MYSQL_cache/cache-integrity-check');
 const chalk = require('chalk');
+const { info, error } = require('./logger');
 
 const connection = mysql.createConnection(dbConfig);
 
@@ -35,6 +36,7 @@ async function operation(opType, input, action, authorID, notes, readType, sourc
                 throw new Error(`Invalid operation type: ${opType}`);
         }
     } catch (err) {
+        error(`Error in operation: ${err.message}`);
         return logDetailedError('operation', 'database-operation.js', err, {
             opType,
             input,

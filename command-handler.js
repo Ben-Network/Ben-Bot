@@ -2,7 +2,7 @@ require('dotenv').config();
 const { REST, Routes, Collection } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
-const chalk = require('chalk'); // Ensure this is compatible with chalk@4
+const chalk = require('chalk');
 
 const clientId = process.env.BOTID;
 const token = process.env.BOTTOKEN;
@@ -14,6 +14,9 @@ if (!token) {
 
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+const eventsPath = path.join(__dirname, 'events'); // Directory for event handlers
+const eventFiles = fs.existsSync(eventsPath) ? fs.readdirSync(eventsPath).filter(file => file.endsWith('.js')) : [];
 
 const groupedCommands = { admin: [], user: [], activation: [], uncategorized: [] };
 const commandsCollection = new Collection(); // Store commands in a collection
@@ -44,6 +47,25 @@ for (const [type, commands] of Object.entries(groupedCommands)) {
     });
 }
 
+// Load and register event handlers
+function registerEventHandlers(client) {
+    console.log(chalk.blue.bold('=== Loading Event Handlers ==='));
+    for (const file of eventFiles) {
+        const filePath = path.join(eventsPath, file);
+        const event = require(filePath);
+        if ('name' in event && 'execute' in event) {
+            if (event.once) {
+                client.once(event.name, (...args) => event.execute(...args));
+            } else {
+                client.on(event.name, (...args) => event.execute(...args));
+            }
+            console.log(chalk.green(`[EVENT LOADED] ${event.name}`));
+        } else {
+            console.log(chalk.red(`[ERROR] The event file "${file}" is missing required "name" or "execute" properties.`));
+        }
+    }
+}
+
 // Deploy commands
 (async () => {
     try {
@@ -71,4 +93,4 @@ for (const [type, commands] of Object.entries(groupedCommands)) {
     }
 })();
 
-module.exports = { commandsCollection }; // Export the collection for use in the bot
+module.exports = { commandsCollection, registerEventHandlers }; // Export the collection and event handler registration

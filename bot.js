@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Client, GatewayIntentBits, Events } = require('discord.js');
 const modeConfig = require('./modes/modeConfig'); // Import mode configuration
-const { commandsCollection } = require('./command-handler'); // Import commands from command-handler.js
+const { commandsCollection, registerEventHandlers } = require('./command-handler'); // Import commands and event handlers from command-handler.js
 require('dotenv').config();
 const token = process.env.BOTTOKEN;
 
@@ -14,6 +14,9 @@ const client = new Client({
         GatewayIntentBits.MessageContent
     ]
 });
+
+// Register event handlers
+registerEventHandlers(client);
 
 // Attach commands to the client
 client.commands = commandsCollection;
