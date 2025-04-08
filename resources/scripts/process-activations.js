@@ -1,25 +1,35 @@
-const fs = require('fs');
-const path = require('path');
-const { cacheFilePath } = require(path.join(__dirname, 'MYSQL_cache', 'cache-config'));
-const { lookupInCache } = require(path.join(__dirname, 'MYSQL_cache', 'cache-lookup'));
+const { info, warn, error } = require('./logger');
+const { lookupInCache } = require('./MYSQL_cache/cache-lookup');
 
 module.exports = async function processActivations(message) {
     try {
-        const words = message.toLowerCase().split(" ");
-        let result = null;
+        info(`Looking up keyword in cache: ${message}`);
 
+        const words = message.toLowerCase().split(" ");
         for (const word of words) {
-            result = lookupInCache(word);
+            const result = lookupInCache(word);
             if (result) {
-                console.log(`Match found for word: ${word}`);
-                return result; // Return the first match
+                try {
+                    result.action = typeof result.action === 'string' ? JSON.parse(result.action) : result.action;
+                } catch (parseError) {
+                    error(`Failed to parse action for keyword: ${word}. Error: ${parseError.message}`);
+                    continue;
+                }
+
+                if (!result.action?.type || !result.action?.content) {
+                    warn(`Invalid activation result for keyword: ${word}. Skipping.`);
+                    continue;
+                }
+
+                info(`Match found for keyword: ${word}`);
+                return result;
             }
         }
 
-        console.log('No match found in cache.');
-        return null; // No match found
-    } catch (error) {
-        console.error('Error processing activations:', error.message);
+        info('No match found in cache. Sad.');
+        return null;
+    } catch (err) {
+        error(`Error processing activations: ${err.message}`);
         return null;
     }
 };

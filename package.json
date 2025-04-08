@@ -1,7 +1,7 @@
 {
   "name": "ben-bot",
   "version": "1.0.0",
-  "description": "A Discord bot for managing activations and cache.",
+  "description": "Ben is an entertainment bot developed by Ben Network (ben.hostinghaven.us).",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",

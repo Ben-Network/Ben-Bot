@@ -17,8 +17,8 @@ async function initializeCache() {
 
         fs.writeFileSync(cacheFilePath, JSON.stringify(cacheData, null, 2), 'utf8');
         console.log(`[SUCCESS] Cache initialized successfully at: ${cacheFilePath}`);
-    } catch (error) {
-        console.error(`[ERROR] Failed to initialize cache: ${error.message}`);
+    } catch (err) {
+        console.error(`[ERROR] Failed to initialize cache: ${err.message}`);
     }
 }
 

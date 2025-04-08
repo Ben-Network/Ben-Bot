@@ -1,5 +1,6 @@
 const readline = require('readline');
-const processActivations = require('../resources/scripts/process-activations'); // Import activation logic
+const processActivations = require('../resources/scripts/process-activations');
+const { info, error } = require('../resources/scripts/logger');
 
 module.exports = (client, modeConfig) => {
     const rl = readline.createInterface({
@@ -7,10 +8,10 @@ module.exports = (client, modeConfig) => {
         output: process.stdout
     });
 
-    modeConfig.logger.info('Interactive Terminal Mode initialized. Type commands below:');
-    console.log('Use the format:');
-    console.log('  Slash commands: /commandName option1=value1 option2=value2');
-    console.log('  Normal messages: Just type your message directly.');
+    info('Interactive Terminal Mode initialized. Type commands below:');
+    info('Use the format:');
+    info('  Slash commands: /commandName option1=value1 option2=value2');
+    info('  Normal messages: Just type your message directly.');
 
     rl.on('line', async (input) => {
         try {
@@ -19,7 +20,7 @@ module.exports = (client, modeConfig) => {
                 const [commandName, ...args] = input.slice(1).split(' ');
                 const options = args.reduce((acc, arg) => {
                     const [key, value] = arg.split('=');
-                    if (key && value) acc[key] = value;
+                    if (key && value !== undefined) acc[key] = value;
                     return acc;
                 }, {});
 
@@ -33,8 +34,7 @@ module.exports = (client, modeConfig) => {
                     },
                     user: { id: process.env.OWNERID }, // Simulate the bot owner as the user
                     reply: async (message) => {
-                        modeConfig.logger.info(`Bot response: ${message}`);
-                        console.log(`Bot: ${message}`);
+                        info(`Bot response: ${message}`);
                     }
                 };
 
@@ -43,24 +43,22 @@ module.exports = (client, modeConfig) => {
                 if (command) {
                     await command.execute(interaction);
                 } else {
-                    console.log(`Unknown command: ${commandName}`);
+                    info(`Unknown command: ${commandName}`);
                 }
             } else {
                 // Handle normal messages
                 const inputMessage = input.trim();
-                const currentTime = Date.now();
 
                 // Simulate a user message object
                 const message = {
                     content: inputMessage,
                     author: { id: process.env.OWNERID }, // Simulate the bot owner as the user
                     reply: async (response) => {
-                        modeConfig.logger.info(`Bot response: ${response}`);
-                        console.log(`Bot: ${response}`);
+                        info(`Bot response: ${response}`);
                     }
                 };
 
-                // Process activations (similar to activation-handler.js)
+                // Process activations
                 const result = await processActivations(inputMessage);
                 if (!result) {
                     return;
@@ -82,7 +80,7 @@ module.exports = (client, modeConfig) => {
                 }
             }
         } catch (err) {
-            modeConfig.logger.error('Error processing input:', err);
+            error('Error processing input:', err);
         }
     });
 };

@@ -1,68 +1,26 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const { Client, GatewayIntentBits, Events } = require('discord.js');
-const modeConfig = require('./modes/modeConfig'); // Import mode configuration
-const { commandsCollection, registerEventHandlers } = require('./command-handler'); // Import commands and event handlers from command-handler.js
 require('dotenv').config();
-const token = process.env.BOTTOKEN;
+const { Client, GatewayIntentBits } = require('discord.js');
+const { commandsCollection, registerEventHandlers } = require('./command-handler');
+const { modeConfig } = require('./modes/modeConfig');
+const { info, error } = require('./resources/scripts/logger');
 
-// Initialize the bot
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
-    ]
+        GatewayIntentBits.MessageContent,
+    ],
 });
 
-// Register event handlers
-registerEventHandlers(client);
+try {
+    modeConfig.logger.info(`Bot starting in ${modeConfig.mode} mode...`);
 
-// Attach commands to the client
-client.commands = commandsCollection;
+    registerEventHandlers(client);
 
-// Log the current mode
-modeConfig.logger.info(`Bot starting in ${modeConfig.mode} mode...`);
+    info('Bot initialized successfully.');
 
-// Mode-specific behavior
-if (modeConfig.isInteractive) {
-    require('./modes/interactiveMode')(client, modeConfig);
-} else if (modeConfig.isDebug) {
-    require('./modes/debugMode')(client, modeConfig);
-} else if (modeConfig.isProduction) {
-    require('./modes/productionMode')(client, modeConfig);
+    client.login(process.env.BOTTOKEN);
+} catch (err) {
+    error(`Error during bot initialization: ${err.message}`);
+    process.exit(1);
 }
-
-// Set up interaction event handling
-client.on(Events.InteractionCreate, async interaction => {
-    if (!interaction.isChatInputCommand()) return;
-
-    const command = client.commands.get(interaction.commandName);
-
-    if (!command) {
-        modeConfig.logger.error(`No command matching ${interaction.commandName} was found.`);
-        return;
-    }
-
-    try {
-        await command.execute(interaction);
-    } catch (error) {
-        modeConfig.logger.error(`Error executing command ${interaction.commandName}:`, error);
-        if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
-        } else {
-            await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-        }
-    }
-});
-
-// When the client is ready, run this code (only once)
-client.once(Events.ClientReady, () => {
-    modeConfig.logger.info(`Ready! Logged in as ${client.user.tag}`);
-});
-
-// Handle bot login
-client.login(token).catch(err => {
-    modeConfig.logger.error('Failed to log in:', err);
-    if (modeConfig.haltOnError) process.exit(1);
-});

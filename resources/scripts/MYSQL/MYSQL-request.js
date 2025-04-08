@@ -15,14 +15,14 @@ module.exports = async function searchKeyword(keyword) {
         await connection.end();
 
         if (results.length > 0) {
-            console.log(`Action found for keyword: ${keyword}`);
+            console.log(`[INFO] Action found for keyword: ${keyword}`);
             return JSON.parse(results[0].action);
         } else {
-            console.log(`No action found for keyword: ${keyword}`);
+            console.log(`[INFO] No action found for keyword: ${keyword}`);
             return null;
         }
-    } catch (error) {
-        console.error('Error querying database:', error.message);
+    } catch (err) {
+        console.error(`[ERROR] Database query failed: ${err.message}`);
         return null;
     }
 };

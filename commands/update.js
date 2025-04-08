@@ -6,14 +6,14 @@ module.exports = {
     type: 'admin',
     data: new SlashCommandBuilder()
         .setName('update')
-        .setDescription('Update a row')
+        .setDescription('Update a row.')
         .addStringOption(option =>
             option.setName('keyword')
-                .setDescription('The word that\'s looked for when modifying the action.')
+                .setDescription('The keyword to update.')
                 .setRequired(true))
         .addStringOption(option =>
             option.setName('actiontype')
-                .setDescription('What\'s the type of action that will be called?')
+                .setDescription('The new action type.')
                 .setRequired(true)
                 .addChoices(
                     { name: 'text', value: 'txt' },
@@ -24,16 +24,17 @@ module.exports = {
                 ))
         .addStringOption(option =>
             option.setName('actioncontent')
-                .setDescription('URL, Text, or DBM ID.')
+                .setDescription('The new action content.')
                 .setRequired(true))
         .addStringOption(option =>
             option.setName('notes')
-                .setDescription('Any notes for this query?')
+                .setDescription('Optional notes for this activation.')
                 .setRequired(false)),
     async execute(interaction) {
         if (interaction.user.id !== process.env.OWNERID) {
             return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
         }
+
         const keyword = interaction.options.getString('keyword');
         const actionType = interaction.options.getString('actiontype');
         const actionContent = interaction.options.getString('actioncontent');
@@ -43,9 +44,9 @@ module.exports = {
             const action = { type: actionType, content: actionContent };
             const result = await operation('modify', keyword, action, null, notes);
             await interaction.reply(`\`\`\`json\n${JSON.stringify(result, null, 2)}\n\`\`\``);
-        } catch (error) {
-            console.error('Error executing update command:', error.message);
-            await interaction.reply({ content: 'An error occurred while updating the row.', ephemeral: true });
+        } catch (err) {
+            console.error(`[ERROR] Failed to execute update command: ${err.message}`);
+            await interaction.reply({ content: 'An error occurred while updating the activation.', ephemeral: true });
         }
     },
 };

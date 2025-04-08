@@ -1,16 +1,15 @@
 require('dotenv').config();
 const { SlashCommandBuilder } = require('discord.js');
 const { operation } = require('../resources/scripts/database-operation');
-const chalk = require('chalk');
 
 module.exports = {
     type: 'user',
     data: new SlashCommandBuilder()
         .setName('read')
-        .setDescription('Read data from the cache or database')
+        .setDescription('Read data from the cache or database.')
         .addStringOption(option =>
             option.setName('type')
-                .setDescription('What type of read operation will be done?')
+                .setDescription('The type of data to read.')
                 .setRequired(true)
                 .addChoices(
                     { name: 'schema', value: 'schema' },
@@ -19,7 +18,7 @@ module.exports = {
                 ))
         .addStringOption(option =>
             option.setName('source')
-                .setDescription('Where will we search?')
+                .setDescription('The source to read from.')
                 .setRequired(true)
                 .addChoices(
                     { name: 'cache', value: 'cache' },
@@ -27,7 +26,7 @@ module.exports = {
                 ))
         .addStringOption(option =>
             option.setName('input')
-                .setDescription('What will we be searching for?')
+                .setDescription('The input to search for.')
                 .setRequired(false)),
     async execute(interaction) {
         if (interaction.user.id !== process.env.OWNERID) {
@@ -41,9 +40,9 @@ module.exports = {
         try {
             const result = await operation('read', input, null, null, null, type, source);
             await interaction.reply(`\`\`\`json\n${JSON.stringify(result, null, 2)}\n\`\`\``);
-        } catch (error) {
-            console.error(chalk.red.bold('[ERROR]'), chalk.yellow('Error executing read command:'), chalk.cyan(error.message));
-            await interaction.reply({ content: `An error occurred while reading data: ${error.message}`, ephemeral: true });
+        } catch (err) {
+            console.error(`[ERROR] Failed to execute read command: ${err.message}`);
+            await interaction.reply({ content: `An error occurred while reading data: ${err.message}`, ephemeral: true });
         }
     },
 };

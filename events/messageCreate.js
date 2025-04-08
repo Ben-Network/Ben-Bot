@@ -1,72 +1,69 @@
 const fs = require('fs');
 const path = require('path');
 const processActivations = require('../resources/scripts/process-activations');
+const { info, warn, error } = require('../resources/scripts/logger');
 
 const ignoreFilePath = path.join(__dirname, '../resources/data/ignored-users.json');
 
-// Global variables for cooldown management
+// Cooldown stuff, nuggets kept spamming it and lagged out my whole damn computer.
 let globalVariables = {
     lastMSGRunTime: 0,
-    GlobalCooldownTime: 5000, // Default 5 seconds, adjust as needed
+    GlobalCooldownTime: 5000, // should I make this configurable in env?
 };
 
 module.exports = {
-    name: 'messageCreate', // Event name for the messageCreate event
+    name: 'messageCreate',
     async execute(message) {
-        console.log(`[DEBUG] messageCreate event triggered by user: ${message.author.id}`);
+        info(`messageCreate event triggered by user: ${message.author.id}`);
 
-        // Ignore bot messages
         if (message.author.bot) {
-            console.log('[DEBUG] Ignored bot message.');
+            info(`This... This is a bot's message. We don't reply to these.`);
+            return;
+        }
+
+        if (isUserIgnored(message.author.id)) {
+            warn(`User ${message.author.id} is opted out so we gon stop this right here :>.`);
             return;
         }
 
         const currentTime = Date.now();
 
-        // Check cooldown
         if (currentTime - globalVariables.lastMSGRunTime < globalVariables.GlobalCooldownTime) {
-            console.log('[DEBUG] Cooldown active. Ignoring message.');
+            info('CHILL YOUR BALLSACK');
             return;
         }
 
-        // Check if user is ignored
-        const isIgnored = getMemberData(message.author.id);
-        if (isIgnored) {
-            console.log(`[DEBUG] User ${message.author.id} is ignored.`);
-            return;
-        }
-
-        // Process activations
         const result = await processActivations(message.content);
-        if (!result) {
-            console.log('[DEBUG] No activation matched the message.');
+        if (!result || !result.action?.type || !result.action?.content) {
+            warn('No keyword match found. Better luck next time.');
             return;
         }
 
-        // Handle result
         globalVariables.lastMSGRunTime = currentTime;
-        const { type, content } = result;
+        const { type, content } = result.action;
 
-        console.log(`[DEBUG] Activation matched. Type: ${type}, Content: ${content}`);
-
-        switch (type) {
-            case 'txt':
-                await message.channel.send(content);
-                break;
-            case 'Lfile':
-                await message.channel.send({ files: [content] });
-                break;
-            case 'Wfile':
-                await message.channel.send(content);
-                break;
-            default:
-                console.error(`[ERROR] Unknown activation type: ${type}`);
+        try {
+            switch (type) {
+                case 'txt':
+                    await message.channel.send(content);
+                    break;
+                case 'Lfile':
+                    await message.channel.send({ files: [content] });
+                    break;
+                case 'Wfile':
+                    await message.channel.send(content);
+                    break;
+                default:
+                    throw new Error(`Unknown activation type: ${type}. Who wrote this?`);
+            }
+        } catch (err) {
+            error(`Failed to send activation response: ${err.message}`);
         }
     },
 };
 
-function getMemberData(userId) {
-    if (!fs.existsSync(ignoreFilePath)) return false;
-    const ignoredUsers = JSON.parse(fs.readFileSync(ignoreFilePath, 'utf8'));
+function isUserIgnored(userId) {
+    // Load the ignore list. If the user is in it, we ignore them.
+    const ignoredUsers = JSON.parse(fs.readFileSync(ignoreFilePath, 'utf8') || '{}');
     return ignoredUsers[userId] === true;
 }

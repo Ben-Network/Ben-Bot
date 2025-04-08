@@ -3,8 +3,7 @@ const fs = require('fs');
 const { dbConfig, cacheFilePath, table } = require('./MYSQL_cache/cache-config');
 const { updateCache } = require('./MYSQL_cache/cache-update');
 const { validateCache } = require('./MYSQL_cache/cache-integrity-check');
-const chalk = require('chalk');
-const { info, error } = require('./logger');
+const { info, warn, error } = require('./logger');
 
 const connection = mysql.createConnection(dbConfig);
 
@@ -60,11 +59,10 @@ function logDetailedError(functionName, fileName, error, variables) {
         timestamp: new Date().toISOString(),
     };
 
-    console.error(chalk.red.bold(`[ERROR]`), chalk.yellow(`[${fileName}]`), chalk.cyan(`[${functionName}]`));
-    console.error(chalk.red.bold('Message:'), error.message);
-    console.error(chalk.red.bold('Stack Trace:'), error.stack);
-    console.error(chalk.red.bold('Variables:'), JSON.stringify(variables, null, 2));
-    console.error(chalk.red.bold('Timestamp:'), errorDetails.timestamp);
+    error(`[${fileName}] [${functionName}] Message: ${error.message}`);
+    error(`[${fileName}] [${functionName}] Stack Trace: ${error.stack}`);
+    error(`[${fileName}] [${functionName}] Variables: ${JSON.stringify(variables, null, 2)}`);
+    error(`[${fileName}] [${functionName}] Timestamp: ${errorDetails.timestamp}`);
 
     return errorDetails; // Return the JSON response
 }
@@ -81,14 +79,14 @@ async function addCommand(input, action, authorID, notes) {
         const query = `INSERT INTO ${table} (word, action, authorID, notes, activations) VALUES (?, ?, ?, ?, ?)`;
         const params = [input, action, authorID || null, notes || null, null];
 
-        console.log(`[INFO] Inserting into ${table}:`, params);
+        info(`Inserting into ${table}: ${JSON.stringify(params)}`);
 
         return new Promise((resolve, reject) => {
             connection.query(query, params, async (err, results) => {
                 if (err) {
                     return reject(logDetailedError('addCommand', 'database-operation.js', err, { query, params }));
                 }
-                console.log(chalk.green.bold('[SUCCESS]'), 'Command added successfully:', results);
+                info('Command added successfully:', results);
                 await updateCache();
                 try {
                     await validateCache();
@@ -108,7 +106,7 @@ function validateAction(action) {
         JSON.parse(action);
         return true;
     } catch (err) {
-        console.error('Invalid action JSON:', err.message);
+        error(`Invalid action JSON: ${err.message}`);
         return false;
     }
 }
@@ -122,7 +120,7 @@ async function removeCommand(input) {
             if (err) {
                 return reject(logDetailedError('removeCommand', 'database-operation.js', err, { query, params }));
             }
-            console.log(chalk.green.bold('[SUCCESS]'), 'Command removed successfully:', results);
+            info('Command removed successfully:', results);
             await updateCache();
             try {
                 await validateCache();
@@ -143,7 +141,7 @@ async function modifyCommand(input, action, notes) {
             if (err) {
                 return reject(logDetailedError('modifyCommand', 'database-operation.js', err, { query, params }));
             }
-            console.log(chalk.green.bold('[SUCCESS]'), 'Command modified successfully:', results);
+            info('Command modified successfully:', results);
             await updateCache();
             resolve(results);
         });
@@ -161,14 +159,14 @@ async function readFromCache(readType, input) {
                 break;
             case 'keyword':
                 if (input === null) {
-                    result = cacheData.find((entry) => entry.word === input) || { status: 400, input, message: `Input Required For ${readType} Read` };
+                    result = { status: 400, input, message: `Input Required For ${readType} Read` };
                     break;
                 }
                 result = cacheData.find((entry) => entry.word === input) || { status: 404, input, message: "Keyword Not Found" };
                 break;
             case 'authorID':
                 if (input === null) {
-                    result = cacheData.find((entry) => entry.word === input) || { status: 400, input, message: `Input Required For ${readType} Read` };
+                    result = { status: 400, input, message: `Input Required For ${readType} Read` };
                     break;
                 }
                 result = cacheData.filter((entry) => entry.authorID === input);
@@ -177,7 +175,7 @@ async function readFromCache(readType, input) {
                 throw new Error(`Invalid read type: ${readType}`);
         }
 
-        console.log(chalk.green.bold('[SUCCESS]'), 'Read operation from cache successful.');
+        info('Read operation from cache successful.');
         return result;
     } catch (err) {
         throw logDetailedError('readFromCache', 'database-operation.js', err, { readType, input });
@@ -222,7 +220,7 @@ async function readFromDatabase(readType, input) {
             if (err) {
                 return reject(logDetailedError('readFromDatabase', 'database-operation.js', err, { query, params }));
             }
-            console.log(chalk.green.bold('[SUCCESS]'), 'Read operation from database successful.');
+            info('Read operation from database successful.');
             resolve(results);
         });
     });

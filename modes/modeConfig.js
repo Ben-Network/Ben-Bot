@@ -1,5 +1,6 @@
 const dotenv = require('dotenv');
 const winston = require('winston');
+const { info, error } = require('../resources/scripts/logger');
 
 // Load environment variables
 dotenv.config();
@@ -13,7 +14,7 @@ const REPLAY_LOG_FILE = process.env.REPLAY_LOG_FILE || null;
 // Validate BOT_MODE
 const validModes = ['interactive', 'debug', 'production'];
 if (!validModes.includes(BOT_MODE)) {
-    console.error(`Invalid BOT_MODE: ${BOT_MODE}. Defaulting to 'production'.`);
+    error(`Invalid BOT_MODE: ${BOT_MODE}. Defaulting to 'production'.`);
 }
 
 // Configure logging
@@ -27,7 +28,7 @@ const logger = winston.createLogger({
     ),
     transports: [
         ...(LOG_TO_CONSOLE ? [new winston.transports.Console()] : []),
-        ...(LOG_TO_FILE ? [new winston.transports.File({ filename: 'bot.log' })] : [])
+        ...(LOG_TO_FILE ? [new winston.transports.File({ filename: process.env.LOG_FILE })] : [])
     ]
 });
 
@@ -42,4 +43,13 @@ const modeConfig = {
     replayLogFile: REPLAY_LOG_FILE
 };
 
-module.exports = modeConfig;
+function configureMode(mode) {
+    try {
+        info(`Configuring mode: ${mode}`);
+        // ...existing code...
+    } catch (err) {
+        error(`Failed to configure mode: ${err.message}`);
+    }
+}
+
+module.exports = { configureMode, modeConfig };

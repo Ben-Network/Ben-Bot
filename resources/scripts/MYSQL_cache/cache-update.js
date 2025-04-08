@@ -1,6 +1,15 @@
 const fs = require('fs');
 const mysql = require('mysql2/promise');
 const { dbConfig, cacheFilePath, table } = require('./cache-config');
+const { info, error, warn } = require('../logger');
+
+function validateCacheEntry(entry) {
+    if (!entry.type || !entry.content || typeof entry.type !== 'string') {
+        warn(`Invalid cache entry detected: ${JSON.stringify(entry)}`);
+        return false;
+    }
+    return true;
+}
 
 async function updateCache() {
     try {
@@ -8,17 +17,19 @@ async function updateCache() {
             throw new Error('Table name is not defined in cache-config.js');
         }
 
-        console.log(`[INFO] Fetching data from table: ${table}`);
+        info(`[INFO] Fetching data from table: ${table}`);
         const connection = await mysql.createConnection(dbConfig);
         const [rows] = await connection.query(`SELECT * FROM ${table}`);
         await connection.end();
 
-        fs.writeFileSync(cacheFilePath, JSON.stringify(rows, null, 2), 'utf8');
-        console.log(`[SUCCESS] Cache updated successfully. Data written to: ${cacheFilePath}`);
+        const validRows = rows.filter(validateCacheEntry);
+
+        fs.writeFileSync(cacheFilePath, JSON.stringify(validRows, null, 2), 'utf8');
+        info(`[SUCCESS] Cache updated successfully. Data written to: ${cacheFilePath}`);
         return { status: 200, message: 'Cache updated successfully.' };
-    } catch (error) {
-        console.error(`[ERROR] Failed to update cache: ${error.message}`);
-        return { status: 500, message: `Cache update failed: ${error.message}` };
+    } catch (err) {
+        error(`[ERROR] Failed to update cache: ${err.message}`);
+        return { status: 500, message: `Cache update failed: ${err.message}` };
     }
 }
 

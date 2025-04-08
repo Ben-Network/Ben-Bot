@@ -1,22 +1,26 @@
 const fs = require('fs');
 const { cacheFilePath } = require('./cache-config');
+const { info, error } = require('../logger');
 
 function lookupInCache(keyword) {
     try {
-        console.log(`[INFO] Looking up keyword in cache: ${keyword}`);
-        const data = fs.readFileSync(cacheFilePath, 'utf8');
-        const cache = JSON.parse(data);
-
-        const match = cache.find(entry => entry.word === keyword);
-        if (match) {
-            console.log(`[SUCCESS] Cache hit for keyword: ${keyword}`);
-            return JSON.parse(match.action);
-        } else {
-            console.log(`[INFO] Cache miss for keyword: ${keyword}`);
+        if (!fs.existsSync(cacheFilePath)) {
+            error('Cache file does not exist.');
             return null;
         }
-    } catch (error) {
-        console.error(`[ERROR] Failed to lookup keyword in cache: ${error.message}`);
+
+        const cacheData = JSON.parse(fs.readFileSync(cacheFilePath, 'utf8'));
+        const result = cacheData.find(entry => entry.word?.toLowerCase() === keyword.toLowerCase());
+
+        if (result) {
+            info(`Cache hit for keyword: ${keyword}`);
+        } else {
+            info(`No match found for keyword: ${keyword}`);
+        }
+
+        return result;
+    } catch (err) {
+        error(`Error during cache lookup: ${err.message}`);
         return null;
     }
 }

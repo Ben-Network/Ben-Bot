@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const { info, warn, error } = require('../resources/scripts/logger');
 
 const ignoreFilePath = path.join(__dirname, '../resources/data/ignored-users.json');
 
@@ -8,7 +9,7 @@ module.exports = {
     type: 'user',
     data: new SlashCommandBuilder()
         .setName('message-readability')
-        .setDescription('Manage whether Ben can read your messages.')
+        .setDescription('Manage whether the bot can read your messages.')
         .addBooleanOption(option =>
             option.setName('input')
                 .setDescription('True to allow, False to ignore. Leave empty to check your current status.')
@@ -23,32 +24,34 @@ module.exports = {
             if (input === null) {
                 // Check current status
                 const isIgnored = ignoredUsers[userId] === true;
-                const response = isIgnored ? 'Ben cannot see your messages.' : 'Ben can see your messages.';
-                console.log(`[INFO] User ${userId} readability check: ${response}`);
+                const response = isIgnored
+                    ? `You're invisible to Ben, he won't read your messages.`
+                    : 'The bot can see your messages. He likes you!';
+                info(`User ${userId} readability check: ${response}`);
                 await interaction.reply({ content: response, ephemeral: true });
             } else if (input === false) {
                 // Add user to ignore list
                 ignoredUsers[userId] = true;
                 saveIgnoredUsers(ignoredUsers);
-                console.log(`[INFO] User ${userId} added to ignore list.`);
+                info(`User ${userId} added to ignore list.`);
                 await interaction.reply({
-                    content: "Ben will no longer see your messages.",
+                    content: "The bot will no longer read your messages.",
                     ephemeral: true
                 });
             } else {
                 // Remove user from ignore list
                 delete ignoredUsers[userId];
                 saveIgnoredUsers(ignoredUsers);
-                console.log(`[INFO] User ${userId} removed from ignore list.`);
+                info(`User ${userId} removed from ignore list.`);
                 await interaction.reply({
-                    content: "Ben will now see your messages.",
+                    content: "bEN can now read your messages again. Hello!",
                     ephemeral: true
                 });
             }
-        } catch (error) {
-            console.error(`[ERROR] Failed to update or check ignore status for user ${userId}:`, error.message);
+        } catch (err) {
+            error(`Failed to update or check ignore status for user ${userId}: ${err.message}`);
             await interaction.reply({
-                content: 'An error occurred while managing your message readability status.',
+                content: 'Something went wrong while managing your message readability status. Try again later.',
                 ephemeral: true
             });
         }
@@ -56,16 +59,18 @@ module.exports = {
 };
 
 function loadIgnoredUsers() {
+    // Load the ignore list from the file. If it doesn’t exist, create a new one.
     if (!fs.existsSync(ignoreFilePath)) {
-        console.log('[INFO] Ignore file not found. Creating a new one.');
+        info('Ignore file not found. Creating a new one.');
         return {};
     }
     const data = fs.readFileSync(ignoreFilePath, 'utf8');
-    console.log('[INFO] Ignore file loaded successfully.');
+    info('Ignore file loaded successfully.');
     return JSON.parse(data);
 }
 
 function saveIgnoredUsers(data) {
+    // Save the updated ignore list back to the file.
     fs.writeFileSync(ignoreFilePath, JSON.stringify(data, null, 2), 'utf8');
-    console.log('[INFO] Ignore file updated successfully.');
+    info('Ignore file updated successfully.');
 }
