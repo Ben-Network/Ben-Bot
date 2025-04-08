@@ -1,8 +1,9 @@
 const mysql = require('mysql2');
 const fs = require('fs');
-const { dbConfig, cacheFilePath, table } = require('./resources/scripts/MYSQL_cache/cache-config');
-const { updateCache } = require('./resources/scripts/MYSQL_cache/cache-update');
-const { validateCache } = require('./resources/scripts/MYSQL_cache/cache-integrity-check');
+const { dbConfig, cacheFilePath, table } = require('./MYSQL_cache/cache-config');
+const { updateCache } = require('./MYSQL_cache/cache-update');
+const { validateCache } = require('./MYSQL_cache/cache-integrity-check');
+const { info, warn, error } = require('./logger');
 
 const connection = mysql.createConnection(dbConfig);
 
@@ -17,63 +18,87 @@ async function operation(opType, input, action, authorID, notes, readType, sourc
 
         switch (opType) {
             case 'add':
-                await addCommand(input, action, authorID, notes);
-                break;
+                return await addCommand(input, action, authorID, notes);
             case 'remove':
-                await removeCommand(input);
-                break;
+                return await removeCommand(input);
             case 'modify':
-                await modifyCommand(input, action, notes);
-                break;
+                return await modifyCommand(input, action, notes);
             case 'read':
                 if (source === 'cache') {
-                    await readFromCache(readType, input);
+                    return await readFromCache(readType, input);
                 } else if (source === 'mysql') {
-                    await readFromDatabaseWithRetry(readType, input);
+                    return await readFromDatabaseWithRetry(readType, input);
                 } else {
                     throw new Error(`Invalid source: ${source}`);
                 }
-                break;
             default:
                 throw new Error(`Invalid operation type: ${opType}`);
         }
     } catch (err) {
-        console.error('Error performing database operation:', err.message);
-        Actions.storeValue(JSON.stringify({ status: 500, error: err.message }), 1, 'output', cache);
+        error(`Error in operation: ${err.message}`);
+        return logDetailedError('operation', 'database-operation.js', err, {
+            opType,
+            input,
+            action,
+            authorID,
+            notes,
+            readType,
+            source,
+        });
     }
 }
 
+function logDetailedError(functionName, fileName, error, variables) {
+    const errorDetails = {
+        status: 500,
+        file: fileName,
+        function: functionName,
+        message: error.message,
+        stack: error.stack,
+        variables,
+        timestamp: new Date().toISOString(),
+    };
+
+    error(`[${fileName}] [${functionName}] Message: ${error.message}`);
+    error(`[${fileName}] [${functionName}] Stack Trace: ${error.stack}`);
+    error(`[${fileName}] [${functionName}] Variables: ${JSON.stringify(variables, null, 2)}`);
+    error(`[${fileName}] [${functionName}] Timestamp: ${errorDetails.timestamp}`);
+
+    return errorDetails; // Return the JSON response
+}
 
 async function addCommand(input, action, authorID, notes) {
-    if (typeof action === 'object') {
-        action = JSON.stringify(action);
-    }
-    if (!validateAction(action)) {
-        throw new Error('Action must be a valid JSON string.');
-    }
+    try {
+        if (typeof action === 'object') {
+            action = JSON.stringify(action);
+        }
+        if (!validateAction(action)) {
+            throw new Error('Action must be a valid JSON string.');
+        }
 
-    const query = `INSERT INTO {$table} (word, action, authorID, notes, activations) VALUES (?, ?, ?, ?, ?)`;
-    const params = [input, action, authorID || null, notes || null, null];
+        const query = `INSERT INTO ${table} (word, action, authorID, notes, activations) VALUES (?, ?, ?, ?, ?)`;
+        const params = [input, action, authorID || null, notes || null, null];
 
-    console.log(`Inserting into ${table}:`, params);
+        info(`Inserting into ${table}: ${JSON.stringify(params)}`);
 
-    return new Promise((resolve, reject) => {
-        connection.query(query, params, async (err, results) => {
-            if (err) {
-                console.error('Error adding command:', err.message);
-                return reject(err);
-            }
-            console.log('Command added successfully:', results);
-            await updateCache();
-            try {await validateCache(); 
-                Actions.storeValue(JSON.stringify({ status: 200, Message: `Command added to MYSQL, cache has updated & passed validation.` }), 1, 'output', cache);
-            }
-            catch {
-                Actions.storeValue(JSON.stringify({ status: 500, error: `Cache validation failed: ${err.message}` }), 1, 'output', cache);
-            }
-            resolve(results);
+        return new Promise((resolve, reject) => {
+            connection.query(query, params, async (err, results) => {
+                if (err) {
+                    return reject(logDetailedError('addCommand', 'database-operation.js', err, { query, params }));
+                }
+                info('Command added successfully:', results);
+                await updateCache();
+                try {
+                    await validateCache();
+                } catch (validationError) {
+                    logDetailedError('addCommand', 'database-operation.js', validationError, { query, params });
+                }
+                resolve(results);
+            });
         });
-    });
+    } catch (err) {
+        throw logDetailedError('addCommand', 'database-operation.js', err, { input, action, authorID, notes });
+    }
 }
 
 function validateAction(action) {
@@ -81,7 +106,7 @@ function validateAction(action) {
         JSON.parse(action);
         return true;
     } catch (err) {
-        console.error('Invalid action JSON:', err.message);
+        error(`Invalid action JSON: ${err.message}`);
         return false;
     }
 }
@@ -93,16 +118,14 @@ async function removeCommand(input) {
     return new Promise((resolve, reject) => {
         connection.query(query, params, async (err, results) => {
             if (err) {
-                console.error('Error removing command:', err.message);
-                return reject(err);
+                return reject(logDetailedError('removeCommand', 'database-operation.js', err, { query, params }));
             }
-            console.log('Command removed successfully:', results);
+            info('Command removed successfully:', results);
             await updateCache();
-            try {await validateCache(); 
-                Actions.storeValue(JSON.stringify({ status: 200, Message: `Command removed from MYSQL, cache has updated & passed validation.` }), 1, 'output', cache);
-            }
-            catch {
-                Actions.storeValue(JSON.stringify({ status: 500, error: `Cache validation failed: ${err.message}` }), 1, 'output', cache);
+            try {
+                await validateCache();
+            } catch (validationError) {
+                logDetailedError('removeCommand', 'database-operation.js', validationError, { query, params });
             }
             resolve(results);
         });
@@ -116,10 +139,9 @@ async function modifyCommand(input, action, notes) {
     return new Promise((resolve, reject) => {
         connection.query(query, params, async (err, results) => {
             if (err) {
-                console.error('Error modifying command:', err.message);
-                return reject(err);
+                return reject(logDetailedError('modifyCommand', 'database-operation.js', err, { query, params }));
             }
-            console.log('Command modified successfully:', results);
+            info('Command modified successfully:', results);
             await updateCache();
             resolve(results);
         });
@@ -136,20 +158,27 @@ async function readFromCache(readType, input) {
                 result = cacheData;
                 break;
             case 'keyword':
-                result = cacheData.find((entry) => entry.word === input) || null;
+                if (input === null) {
+                    result = { status: 400, input, message: `Input Required For ${readType} Read` };
+                    break;
+                }
+                result = cacheData.find((entry) => entry.word === input) || { status: 404, input, message: "Keyword Not Found" };
                 break;
             case 'authorID':
+                if (input === null) {
+                    result = { status: 400, input, message: `Input Required For ${readType} Read` };
+                    break;
+                }
                 result = cacheData.filter((entry) => entry.authorID === input);
                 break;
             default:
                 throw new Error(`Invalid read type: ${readType}`);
         }
 
-        Actions.storeValue(JSON.stringify(result), 1, 'output', cache);
-        console.log('Read operation from cache successful:', result);
+        info('Read operation from cache successful.');
+        return result;
     } catch (err) {
-        console.error('Error reading from cache:', err.message);
-        throw err;
+        throw logDetailedError('readFromCache', 'database-operation.js', err, { readType, input });
     }
 }
 
@@ -158,9 +187,9 @@ async function readFromDatabaseWithRetry(readType, input, retries = 3) {
         try {
             return await readFromDatabase(readType, input);
         } catch (err) {
-            console.error(`Database query failed (attempt ${attempt}/${retries}):`, err.message);
+            const errorDetails = logDetailedError('readFromDatabaseWithRetry', 'database-operation.js', err, { readType, input, attempt, retries });
             if (attempt === retries) {
-                throw new Error('Failed to read from database after multiple attempts.');
+                throw errorDetails;
             }
         }
     }
@@ -172,7 +201,7 @@ async function readFromDatabase(readType, input) {
 
     switch (readType) {
         case 'schema':
-            query = `SELECT * FROM #{table`;
+            query = `SELECT * FROM ${table}`;
             break;
         case 'keyword':
             query = `SELECT * FROM ${table} WHERE word = ?`;
@@ -189,39 +218,12 @@ async function readFromDatabase(readType, input) {
     return new Promise((resolve, reject) => {
         connection.query(query, params, (err, results) => {
             if (err) {
-                return reject(err);
+                return reject(logDetailedError('readFromDatabase', 'database-operation.js', err, { query, params }));
             }
-
-            const formattedResult = JSON.stringify(results.length > 0 ? results : [], null, 2);
-            Actions.storeValue(formattedResult, 1, 'output', cache);
-            console.log('Read operation from database successful:', formattedResult);
+            info('Read operation from database successful.');
             resolve(results);
         });
     });
 }
 
-
-(async () => {
-    const opType = tempVars('opType');
-    const input = tempVars('input');
-    const action = {
-        type: tempVars('actionType'),
-        content: tempVars('actionContent')
-    };
-    const authorID = tempVars('authorID');
-    const notes = tempVars('notes');
-    const readType = tempVars('readType');
-    const source = tempVars('source');
-
-    await operation(opType, input, action, authorID, notes, readType, source);
-
-    if (typeof cache !== 'undefined') {
-        Actions.callNextAction(cache);
-    }
-
-    connection.end((err) => {
-        if (err) {
-            console.error('Error closing MySQL connection:', err.message);
-        }
-    });
-})();
+module.exports = { operation };

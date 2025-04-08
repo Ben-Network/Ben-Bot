@@ -1,20 +1,29 @@
 {
-  "name": "discord-bot-maker-bot",
-  "author": "Robert Borghese",
+  "name": "ben-bot",
+  "version": "1.0.0",
+  "description": "Ben is an entertainment bot developed by Ben Network (ben.hostinghaven.us).",
   "main": "bot.js",
-  "version": "2.1.7",
+  "scripts": {
+    "start": "node bot.js",
+    "lint": "eslint .",
+    "test": "jest"
+  },
   "dependencies": {
-    "@themondon/discord-player-v13": "^5.2.5",
-    "chalk": "^5.4.1",
+    "chalk": "^4.1.2",
     "crypto": "^1.0.1",
-    "discord.js": "^13.14.0",
+    "discord.js": "^14.18.0",
     "dotenv": "^16.4.7",
     "fs": "^0.0.1-security",
-    "fstorm": "latest",
     "jimp": "latest",
     "mysql2": "^3.14.0",
     "node-cron": "^3.0.3",
-    "node-fetch": "^3.3.2",
-    "path": "^0.12.7"
-  }
+    "path": "^0.12.7",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.50.0",
+    "jest": "^29.7.0"
+  },
+  "author": "Ben Network",
+  "license": "MIT"
 }

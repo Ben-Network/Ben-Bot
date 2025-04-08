@@ -1,9 +1,15 @@
+const { info, error } = require('./logger');
+
 (async () => {
     const bodyData = tempVars('output');
-    console.log('Raw bodyData:', bodyData);
+    info('Raw bodyData:', bodyData);
 
     try {
         const parsedData = typeof bodyData === 'string' ? JSON.parse(bodyData) : bodyData;
+
+        if (!parsedData || typeof parsedData !== 'object') {
+            throw new Error('Invalid JSON data.');
+        }
 
         const wrapLinks = (obj) => {
             if (typeof obj === 'string') {
@@ -22,9 +28,9 @@
 
         Actions.storeValue(formattedJSON, 1, 'formattedmeow', cache);
 
-        console.log('Formatted JSON with wrapped links:', formattedJSON);
+        info('Formatted JSON with wrapped links:', formattedJSON);
     } catch (err) {
-        console.error('Error parsing or formatting JSON:', err.message);
+        error('Error parsing or formatting JSON:', err.message);
     }
 
     Actions.callNextAction(cache);

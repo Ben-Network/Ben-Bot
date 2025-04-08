@@ -1,42 +1,25 @@
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise');
 const fs = require('fs');
-const { dbConfig, cacheFilePath } = require('./cache-config');
+const { dbConfig, cacheFilePath, table } = require('./cache-config');
 
-// Create a database connection using the configuration
-const connection = mysql.createConnection(dbConfig);
+async function initializeCache() {
+    console.log('[INFO] Initializing cache...');
 
-// Function to initialize the cache
-function initializeCache() {
-  console.log('Initializing cache...');
+    try {
+        const connection = await mysql.createConnection(dbConfig);
+        const [rows] = await connection.query(`SELECT word, action FROM ${table}`);
+        await connection.end();
 
-  // Query the entire keywords table
-  const query = 'SELECT word, action FROM keywords';
-  connection.query(query, (err, results) => {
-    if (err) {
-      console.error('Error querying the database:', err.message);
-      connection.end();
-      return;
+        const cacheData = rows.reduce((acc, row) => {
+            acc[row.word] = row.action;
+            return acc;
+        }, {});
+
+        fs.writeFileSync(cacheFilePath, JSON.stringify(cacheData, null, 2), 'utf8');
+        console.log(`[SUCCESS] Cache initialized successfully at: ${cacheFilePath}`);
+    } catch (err) {
+        console.error(`[ERROR] Failed to initialize cache: ${err.message}`);
     }
-
-    // Format the results into a JSON object
-    const cacheData = {};
-    results.forEach(row => {
-      cacheData[row.word] = row.action;
-    });
-
-    // Write the JSON object to the cache file
-    fs.writeFile(cacheFilePath, JSON.stringify(cacheData, null, 2), (writeErr) => {
-      if (writeErr) {
-        console.error('Error writing to cache file:', writeErr.message);
-      } else {
-        console.log('Cache successfully initialized at:', cacheFilePath);
-      }
-
-      // Close the database connection
-      connection.end();
-    });
-  });
 }
 
-// Run the cache initialization
-initializeCache();
+module.exports = { initializeCache };

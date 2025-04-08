@@ -1,152 +1,154 @@
+// This bot is a shit show, I can't wait to write the documentation for it :D
 const fs = require('fs');
 const path = require('path');
 const { cacheFilePath, maxBackupSizeMB, cacheBackupPath, analyticsFilePath } = require('./cache-config');
+const { info, error } = require('../logger');
 
 const backupDir = cacheBackupPath;
 const lockFilePath = `${cacheFilePath}.lock`;
 
 if (!fs.existsSync(backupDir)) {
-  fs.mkdirSync(backupDir, { recursive: true });
+    fs.mkdirSync(backupDir, { recursive: true });
 }
 
 function monitorCache() {
-  console.log('Monitoring cache file for changes...');
-  fs.watch(cacheFilePath, (eventType) => {
-    if (eventType === 'change') {
-      console.log('Cache file modified:', new Date().toISOString());
-      createCacheBackup();
-    }
-  });
+    info('Monitoring cache file for changes...');
+    fs.watch(cacheFilePath, (eventType) => {
+        if (eventType === 'change') {
+            info('Cache file modified:', new Date().toISOString());
+            createCacheBackup();
+        }
+    });
 }
 
 function createCacheBackup() {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const backupFilePath = path.join(backupDir, `cache-backup-${timestamp}.json`);
+    try {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const backupFilePath = path.join(cacheBackupPath, `cache-backup-${timestamp}.json`);
 
-  fs.copyFile(cacheFilePath, backupFilePath, (err) => {
-    if (err) {
-      console.error('Error creating cache backup:', err.message);
-    } else {
-      console.log('Cache backup created at:', backupFilePath);
-      truncateOldBackups();
+        fs.copyFileSync(cacheFilePath, backupFilePath);
+        info(`[SUCCESS] Cache backup created at: ${backupFilePath}`);
+        truncateOldBackups();
+    } catch (err) {
+        error(`[ERROR] Failed to create cache backup: ${err.message}`);
     }
-  });
-}
-
-function listCacheBackups() {
-  fs.readdir(backupDir, (err, files) => {
-    if (err) {
-      console.error('Error reading backup directory:', err.message);
-      return;
-    }
-    console.log('Available backups:');
-    files.forEach((file) => console.log(file));
-  });
-}
-
-function restoreCacheBackup(backupFileName) {
-  const backupFilePath = path.join(backupDir, backupFileName);
-
-  fs.copyFile(backupFilePath, cacheFilePath, (err) => {
-    if (err) {
-      console.error('Error restoring cache backup:', err.message);
-    } else {
-      console.log('Cache restored from backup:', backupFileName);
-    }
-  });
-}
-
-function acquireLock() {
-  if (fs.existsSync(lockFilePath)) {
-    console.error('Cache is locked. Another process may be using it.');
-    return false;
-  }
-  fs.writeFileSync(lockFilePath, 'LOCKED');
-  console.log('Cache lock acquired.');
-  return true;
-}
-
-function releaseLock() {
-  if (fs.existsSync(lockFilePath)) {
-    fs.unlinkSync(lockFilePath);
-    console.log('Cache lock released.');
-  }
-}
-
-function trackCacheUsage(type) {
-  let analytics = { hits: 0, misses: 0, lookups: 0 };
-
-  if (fs.existsSync(analyticsFilePath)) {
-    const data = fs.readFileSync(analyticsFilePath, 'utf8');
-    analytics = JSON.parse(data);
-  }
-
-  analytics[type]++;
-  fs.writeFileSync(analyticsFilePath, JSON.stringify(analytics, null, 2));
-  console.log(`Cache ${type} recorded.`);
-}
-
-function displayCacheAnalytics() {
-  if (!fs.existsSync(analyticsFilePath)) {
-    console.log('No analytics data available.');
-    return;
-  }
-
-  const analytics = JSON.parse(fs.readFileSync(analyticsFilePath, 'utf8'));
-  console.log('Cache Usage Analytics:', analytics);
-}
-
-function dumpCacheContents() {
-  if (!fs.existsSync(cacheFilePath)) {
-    console.error('Cache file does not exist.');
-    return;
-  }
-
-  const cacheData = fs.readFileSync(cacheFilePath, 'utf8');
-  console.log('Cache Contents:', JSON.parse(cacheData));
-}
-
-function getDirectorySize(directoryPath) {
-  const files = fs.readdirSync(directoryPath);
-  return files.reduce((total, file) => {
-    const filePath = path.join(directoryPath, file);
-    const stats = fs.statSync(filePath);
-    return total + stats.size;
-  }, 0);
 }
 
 function truncateOldBackups() {
-  const maxSizeBytes = maxBackupSizeMB * 1024 * 1024;
-  let totalSize = getDirectorySize(backupDir);
+    try {
+        const files = fs.readdirSync(cacheBackupPath)
+            .map(file => ({
+                name: file,
+                time: fs.statSync(path.join(cacheBackupPath, file)).mtime.getTime(),
+            }))
+            .sort((a, b) => a.time - b.time);
 
-  if (totalSize > maxSizeBytes) {
-    console.log('Backup size exceeds limit. Truncating old backups...');
-    const files = fs.readdirSync(backupDir)
-      .map(file => ({
-        name: file,
-        time: fs.statSync(path.join(backupDir, file)).mtime.getTime(),
-      }))
-      .sort((a, b) => a.time - b.time);
+        let totalSize = files.reduce((sum, file) => sum + fs.statSync(path.join(cacheBackupPath, file.name)).size, 0);
+        const maxSizeBytes = maxBackupSizeMB * 1024 * 1024;
 
-    for (const file of files) {
-      if (totalSize <= maxSizeBytes) break;
-      const filePath = path.join(backupDir, file.name);
-      const fileSize = fs.statSync(filePath).size;
-      fs.unlinkSync(filePath);
-      totalSize -= fileSize;
-      console.log(`Deleted old backup: ${file.name}`);
+        for (const file of files) {
+            if (totalSize <= maxSizeBytes) break;
+            const filePath = path.join(cacheBackupPath, file.name);
+            totalSize -= fs.statSync(filePath).size;
+            fs.unlinkSync(filePath);
+            info(`[INFO] Deleted old backup: ${file.name}`);
+        }
+    } catch (err) {
+        error(`[ERROR] Failed to truncate old backups: ${err.message}`);
     }
-  }
+}
+
+function listCacheBackups() {
+    try {
+        const files = fs.readdirSync(backupDir);
+        info('Available backups:');
+        files.forEach(file => info(file));
+    } catch (err) {
+        error(`[ERROR] Failed to list cache backups: ${err.message}`);
+    }
+}
+
+function restoreCacheBackup(backupFileName) {
+    try {
+        const backupFilePath = path.join(backupDir, backupFileName);
+        fs.copyFileSync(backupFilePath, cacheFilePath);
+        info(`[SUCCESS] Cache restored from backup: ${backupFileName}`);
+    } catch (err) {
+        error(`[ERROR] Failed to restore cache backup: ${err.message}`);
+    }
+}
+
+function acquireLock() {
+    if (fs.existsSync(lockFilePath)) {
+        error('Cache is locked. Another process may be using it.');
+        return false;
+    }
+    fs.writeFileSync(lockFilePath, 'LOCKED');
+    info('Cache lock acquired.');
+    return true;
+}
+
+function releaseLock() {
+    if (fs.existsSync(lockFilePath)) {
+        fs.unlinkSync(lockFilePath);
+        info('Cache lock released.');
+    }
+}
+
+function trackCacheUsage(type) {
+    try {
+        let analytics = { hits: 0, misses: 0, lookups: 0 };
+
+        if (fs.existsSync(analyticsFilePath)) {
+            const data = fs.readFileSync(analyticsFilePath, 'utf8');
+            analytics = JSON.parse(data);
+        }
+
+        analytics[type]++;
+        fs.writeFileSync(analyticsFilePath, JSON.stringify(analytics, null, 2));
+        info(`Cache ${type} recorded.`);
+    } catch (err) {
+        error(`[ERROR] Failed to track cache usage: ${err.message}`);
+    }
+}
+
+function displayCacheAnalytics() {
+    try {
+        if (!fs.existsSync(analyticsFilePath)) {
+            info('No analytics data available.');
+            return;
+        }
+
+        const analytics = JSON.parse(fs.readFileSync(analyticsFilePath, 'utf8'));
+        info('Cache Usage Analytics:', analytics);
+    } catch (err) {
+        error(`[ERROR] Failed to display cache analytics: ${err.message}`);
+    }
+}
+
+function dumpCacheContents() {
+    try {
+        if (!fs.existsSync(cacheFilePath)) {
+            error('Cache file does not exist.');
+            return;
+        }
+
+        const cacheData = fs.readFileSync(cacheFilePath, 'utf8');
+        info('Cache Contents:', JSON.parse(cacheData));
+    } catch (err) {
+        error(`[ERROR] Failed to dump cache contents: ${err.message}`);
+    }
 }
 
 module.exports = {
-  trackCacheUsage,
-  monitorCache,
-  createCacheBackup,
-  listCacheBackups,
-  restoreCacheBackup,
-  acquireLock,
-  releaseLock,
-  displayCacheAnalytics,
-  dumpCacheContents,
+    monitorCache,
+    createCacheBackup,
+    truncateOldBackups,
+    listCacheBackups,
+    restoreCacheBackup,
+    acquireLock,
+    releaseLock,
+    trackCacheUsage,
+    displayCacheAnalytics,
+    dumpCacheContents,
 };
