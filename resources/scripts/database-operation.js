@@ -3,7 +3,7 @@ const fs = require('fs');
 const { dbConfig, cacheFilePath, table } = require('./MYSQL_cache/cache-config');
 const { updateCache } = require('./MYSQL_cache/cache-update');
 const { validateCache } = require('./MYSQL_cache/cache-integrity-check');
-const { info, warn, error } = require('./logger');
+const { info, error } = require('./logger');
 
 const connection = mysql.createConnection(dbConfig);
 
@@ -86,7 +86,7 @@ async function addCommand(input, action, authorID, notes) {
                 if (err) {
                     return reject(logDetailedError('addCommand', 'database-operation.js', err, { query, params }));
                 }
-                info('Command added successfully:', results);
+                info(`Command added successfully: ${results}`);
                 await updateCache();
                 try {
                     await validateCache();
@@ -141,7 +141,7 @@ async function modifyCommand(input, action, notes) {
             if (err) {
                 return reject(logDetailedError('modifyCommand', 'database-operation.js', err, { query, params }));
             }
-            info('Command modified successfully:', results);
+            info(`Command modified successfully: $results}`);
             await updateCache();
             resolve(results);
         });
