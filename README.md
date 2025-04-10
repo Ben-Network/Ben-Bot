@@ -5,6 +5,8 @@
 ![MySQL](https://img.shields.io/badge/MySQL-Required-red)  
 ![Contributions](https://img.shields.io/badge/Contributions-Encouraged-brightgreen)
 
+[![DeepScan grade](https://deepscan.io/api/teams/26659/projects/29278/branches/940742/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=26659&pid=29278&bid=940742)
+
 Ben Bot is a fun and versatile Discord bot developed by **Ben Network**. What started as an inside joke in 2024 has grown into a fully open-source project. Ben Bot is packed with features like keyword activations, MySQL integration, and a caching system, making it perfect for developers and server admins who want to add some flair to their Discord servers.
 
 ---
@@ -22,7 +24,7 @@ Ben Bot is a fun and versatile Discord bot developed by **Ben Network**. What st
 
 ## **Features**
 
-- **Keyword Activations**: Responds to specific keywords with text, local files, or web files.
+- **Keyword Activations**: Responds to specific keywords with text, local files, or web files. (local files are a WIP)
 - **Slash Commands**: Includes commands for both users and admins to manage bot behavior.
 - **MySQL Integration**: Stores and manages keyword activations in a database.
 - **Cache Management**: Reduces database queries with an optimized caching system.
@@ -34,7 +36,7 @@ Ben Bot is a fun and versatile Discord bot developed by **Ben Network**. What st
 ## **Security and Privacy**
 
 Ben Bot is designed with your privacy in mind:
-- **No Personal Data**: The bot doesn’t store personal user data, except for ignored users (to respect their preferences).
+- **No Personal Data**: The bot doesn’t store personal user data, except for storing ignored userIDs (so ben won't scan their messages).
 - **Secure Database**: All data is stored securely in a MySQL database.
 - **Open Source**: The code is transparent and open for review.
 
@@ -63,12 +65,21 @@ Ben Bot is designed with your privacy in mind:
    - Rename `.env.example` to `.env`.
    - Fill in the required fields:
      ```properties
-     HOST="your-mysql-host"
-     USER="your-mysql-username"
-     PASSWORD="your-mysql-password"
-     DATABASE="your-database-name"
-     BOTTOKEN="your-discord-bot-token"
-     BOTID="your-discord-bot-id"
+      HOST="IP or Address"
+      USER="MYSQL Username"
+      PASSWORD="MYSQL User Password"
+      DATABASE="MYSQL Database Name"
+      TABLE="MYSQL Table Name"
+
+      BOTTOKEN="Discord Bot Token"
+      BOTID="Discord Bot ID"
+      OWNERID="Discord Bot Owner ID"
+
+      BOT_MODE="production" # Options: production, debug, interactive
+      LOG_TO_CONSOLE="true"
+      LOG_TO_FILE="false"
+      HALT_ON_ERROR="false"
+      REPLAY_LOG_FILE="/resources/cache/replay.log"
      ```
 
 4. **Set Up the MySQL Database**:
@@ -103,9 +114,9 @@ If you’re hosting Ben Bot, you can invite it to your server using this link:
 Ben Bot responds to specific keywords with pre-defined actions. Here are some examples:
 
 | **Keyword**   | **Response Type** | **Description**                        |
-|---------------|--------------------|---------------------------------------|
-| `ben`         | Text              | Responds with "Hello, world!"          |
-| `cat`         | Local File        | Sends a picture of a cat.              |
+|---------------|-------------------|----------------------------------------|
+| `ben`         | Text              | Sends a picture of Ben Simmons         |
+| `meow`        | Local File        | Sends a picture of a cat.              |
 
 > Replace the above table with your bot’s actual keywords and responses.
 
@@ -114,8 +125,8 @@ Ben Bot supports a variety of commands for users and admins:
 
 #### **User Commands**
 | Command               | Description                                       |
-|------------------------|--------------------------------------------------|
-| `/message-readability` | Manage whether the bot can read your messages.   |
+|-----------------------|---------------------------------------------------|
+| `/message-visibility` |  Manage whether the bot can read your messages.   |
 
 #### **Admin Commands**
 | Command       | Description                                      |
@@ -124,7 +135,7 @@ Ben Bot supports a variety of commands for users and admins:
 | `/read`       | Read data from the cache or database.            |
 | `/update`     | Update an existing keyword activation.           |
 | `/delete`     | Delete a keyword activation.                     |
-| `/drop-cache` | Clear and update the cache manually.             |
+| `/dropcache`  | Clear and update the cache manually.             |
 
 ---
 
@@ -152,7 +163,6 @@ We’d love your help to make Ben Bot even better! Here’s how you can contribu
   - `cache-management.js`: Manages cache creation, backups, and restoration.
   - `database-operation.js`: Handles all MySQL database interactions.
   - `logger.js`: Handles non-essential logs.
-- **Testing**: Use `npm test` to run tests with Jest.
 - **Code Style**: Follow the ESLint rules defined in the project.
 
 ---
