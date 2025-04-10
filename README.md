@@ -12,8 +12,9 @@ Ben Bot is a fun and versatile Discord bot developed by **Ben Network**. What st
 
 ## **Table of Contents**
 1. [Features](#features)
+2. [Cloud Hosted](#cloud-hosted)
 2. [Security and Privacy](#security-and-privacy)
-3. [How to Set Up Ben Bot](#how-to-set-up-ben-bot)
+3. [How to Set Up Ben Bot (Self Hosted)](#how-to-set-up-ben-bot)
 4. [How to Use Ben Bot](#how-to-use-ben-bot)
 5. [Contributing](#contributing)
 6. [License](#license)
@@ -28,9 +29,13 @@ Ben Bot is a fun and versatile Discord bot developed by **Ben Network**. What st
 - **MySQL Integration**: Stores and manages keyword activations in a database.
 - **Cache Management**: Reduces database queries with an optimized caching system.
 - **Security-Focused**: No personal user data is stored, ensuring privacy.
+- **Cloud-Hosted**: You can invite our official hosted version and join the fun!
 - **Self-Hosting**: Fully open-source and easy to host on your own.
 
 ---
+
+## **Cloud Hosted**
+Ben can be pretty hard to install due to the MySQL requirement, and lack of support for other database systems, so we host our own official version
 
 ## **Security and Privacy**
 
@@ -106,8 +111,7 @@ Ben Bot is designed with your privacy in mind:
 ## **How to Use Ben Bot**
 
 ### **Invite the Bot**
-If you’re hosting Ben Bot, you can invite it to your server using this link:  
-[**Invite Ben Bot**](https://discord.com/oauth2/authorize?client_id=1199941494518325339&permissions=8&scope=bot%20applications.commands)
+If you’re hosting Ben Bot, you can generate an invite link here:  
 
 ### **Keyword Activations**
 Ben Bot responds to specific keywords with pre-defined actions. Here are some examples:
