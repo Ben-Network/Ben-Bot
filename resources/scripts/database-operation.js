@@ -9,7 +9,9 @@ const connection = mysql.createConnection(dbConfig);
 
 async function operation({ opType, input, action, authorID, notes, readType, source }) {
     try {
-        validateOperationInputs(opType, action);
+        if (!opType) {
+            throw new Error('Operation type (opType) is required.');
+        }
 
         const operationHandlers = {
             add: () => addCommand(input, action, authorID, notes),
@@ -25,15 +27,7 @@ async function operation({ opType, input, action, authorID, notes, readType, sou
         return await operationHandlers[opType]();
     } catch (err) {
         error(`Error in operation: ${err.message}`);
-        return logDetailedError('operation', 'database-operation.js', err, {
-            opType,
-            input,
-            action,
-            authorID,
-            notes,
-            readType,
-            source,
-        });
+        throw err;
     }
 }
 
@@ -55,14 +49,7 @@ async function handleReadOperation(source, readType, input) {
         throw new Error(`Invalid source: ${source}`);
     }
 }
-function validateOperationInputs(opType, action) {
-    if (!opType) {
-        throw new Error('Operation type (opType) is required.');
-    }
-    if (['add', 'modify'].includes(opType) && !action) {
-        throw new Error('Action is required for add and modify operations.');
-    }
-}
+
 function logDetailedError(functionName, fileName, error, variables) {
     const errorDetails = {
         status: 500,
@@ -79,7 +66,7 @@ function logDetailedError(functionName, fileName, error, variables) {
     error(`[${fileName}] [${functionName}] Variables: ${JSON.stringify(variables, null, 2)}`);
     error(`[${fileName}] [${functionName}] Timestamp: ${errorDetails.timestamp}`);
 
-    return errorDetails; // Return the JSON response
+    return errorDetails;
 }
 
 async function addCommand(input, action, authorID, notes) {
@@ -182,35 +169,45 @@ async function modifyCommand(input, action, notes) {
 async function readFromCache(readType, input) {
     try {
         const cacheData = JSON.parse(fs.readFileSync(cacheFilePath, 'utf8'));
-        let result;
-
-        switch (readType) {
-            case 'schema':
-                result = cacheData;
-                break;
-            case 'keyword':
-                if (input === null) {
-                    result = { status: 400, input, message: `Input Required For ${readType} Read` };
-                    break;
-                }
-                result = cacheData.find((entry) => entry.word === input) || { status: 404, input, message: "Keyword Not Found" };
-                break;
-            case 'authorID':
-                if (input === null) {
-                    result = { status: 400, input, message: `Input Required For ${readType} Read` };
-                    break;
-                }
-                result = cacheData.filter((entry) => entry.authorID === input);
-                break;
-            default:
-                throw new Error(`Invalid read type: ${readType}`);
-        }
-
-        info('Read operation from cache successful.');
-        return result;
+        return await readFromCacheHelper(readType, input, cacheData);
     } catch (err) {
         throw logDetailedError('readFromCache', 'database-operation.js', err, { readType, input });
     }
+}
+
+async function readFromCacheHelper(readType, input, cacheData) {
+    let result;
+
+    switch (readType) {
+        case 'schema':
+            result = cacheData;
+            break;
+        case 'keyword':
+            result = readKeywordFromCache(input, cacheData);
+            break;
+        case 'authorID':
+            result = readAuthorIDFromCache(input, cacheData);
+            break;
+        default:
+            throw new Error(`Invalid read type: ${readType}`);
+    }
+
+    info('Read operation from cache successful.');
+    return result;
+}
+
+function readKeywordFromCache(input, cacheData) {
+    if (input === null) {
+        return { status: 400, input, message: `Input Required For keyword Read` };
+    }
+    return cacheData.find((entry) => entry.word === input) || { status: 404, input, message: "Keyword Not Found" };
+}
+
+function readAuthorIDFromCache(input, cacheData) {
+    if (input === null) {
+        return { status: 400, input, message: `Input Required For authorID Read` };
+    }
+    return cacheData.filter((entry) => entry.authorID === input);
 }
 
 async function readFromDatabaseWithRetry(readType, input, retries = 3) {

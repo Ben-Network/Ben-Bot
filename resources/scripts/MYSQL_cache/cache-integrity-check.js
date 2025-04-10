@@ -5,6 +5,8 @@ const { dbConfig, cacheFilePath, table } = require('./cache-config');
 const { updateCache } = require('./cache-update');
 const { info, error } = require('../logger');
 
+let skipValidation = false; // Flag to skip validation if cache was just updated
+
 function hashData(data) {
     return crypto.createHash('sha256').update(data).digest('hex');
 }
@@ -32,6 +34,12 @@ function hashCache() {
 }
 
 async function validateCache() {
+    if (skipValidation) {
+        info('[INFO] Skipping cache validation as it was recently updated.');
+        skipValidation = false; // Reset the flag
+        return;
+    }
+
     try {
         info('[INFO] Validating cache integrity...');
         const databaseHash = await hashDatabase();
@@ -49,4 +57,9 @@ async function validateCache() {
     }
 }
 
-module.exports = { validateCache };
+function markCacheAsUpdated() {
+    skipValidation = true;
+    info('[INFO] Cache marked as updated. Validation will be skipped temporarily.');
+}
+
+module.exports = { validateCache, markCacheAsUpdated };

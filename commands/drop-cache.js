@@ -5,7 +5,7 @@ const { clearCache } = require('../resources/scripts/MYSQL_cache/cache-drop');
 module.exports = {
     type: 'admin',
     data: new SlashCommandBuilder()
-        .setName('drop-cache')
+        .setName('dropcache')
         .setDescription('Manually clear and update the cache.'),
     async execute(interaction) {
         if (interaction.user.id !== process.env.OWNERID) {

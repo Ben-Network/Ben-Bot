@@ -16,54 +16,87 @@ module.exports = {
     async execute(message) {
         info(`messageCreate event triggered by user: ${message.author.id}`);
 
-        if (message.author.bot) {
-            info(`This... This is a bot's message. We don't reply to these.`);
-            return;
-        }
+        if (this.isBotMessage(message)) return;
+        if (this.isUserIgnored(message.author.id)) return;
+        if (this.isOnCooldown()) return;
 
-        if (isUserIgnored(message.author.id)) {
-            warn(`User ${message.author.id} is opted out so we gon stop this right here :>.`);
-            return;
-        }
+        const result = await this.processMessage(message);
+        if (this.isInvalidResult(result)) return;
 
-        const currentTime = Date.now();
-
-        if (currentTime - globalVariables.lastMSGRunTime < globalVariables.GlobalCooldownTime) {
-            info('CHILL YOUR BALLSACK');
-            return;
-        }
-
-        const result = await processActivations(message.content);
-        if (!result || !result.action?.type || !result.action?.content) {
-            warn('No keyword match found. Better luck next time.');
-            return;
-        }
-
-        globalVariables.lastMSGRunTime = currentTime;
-        const { type, content } = result.action;
+        globalVariables.lastMSGRunTime = Date.now();
 
         try {
-            switch (type) {
-                case 'txt':
-                    await message.channel.send(content);
-                    break;
-                case 'Lfile':
-                    await message.channel.send({ files: [content] });
-                    break;
-                case 'Wfile':
-                    await message.channel.send(content);
-                    break;
-                default:
-                    throw new Error(`Unknown activation type: ${type}. Who wrote this?`);
-            }
+            await this.sendActivationResponse(message, result.action.type, result.action.content);
         } catch (err) {
             error(`Failed to send activation response: ${err.message}`);
         }
     },
-};
 
-function isUserIgnored(userId) {
-    // Load the ignore list. If the user is in it, we ignore them.
-    const ignoredUsers = JSON.parse(fs.readFileSync(ignoreFilePath, 'utf8') || '{}');
-    return ignoredUsers[userId] === true;
-}
+    isBotMessage(message) {
+        if (message.author.bot) {
+            info(`This... This is a bot's message. We don't reply to these.`);
+            return true;
+        }
+        return false;
+    },
+
+    isUserIgnored(userId) {
+        const ignoredUsers = this.loadIgnoredUsers();
+        if (ignoredUsers[userId]) {
+            info(`User ${userId} is opted out so we gon stop this right here :>.`);
+            return true;
+        }
+        return false;
+    },
+
+    isOnCooldown() {
+        const currentTime = Date.now();
+        if (currentTime - globalVariables.lastMSGRunTime < globalVariables.GlobalCooldownTime) {
+            info('CHILL YOUR BALLSACK');
+            return true;
+        }
+        return false;
+    },
+
+    isInvalidResult(result) {
+        if (this.isResultInvalid(result)) {
+            warn('No keyword match found. Better luck next time.');
+            return true;
+        }
+        return false;
+    },
+
+    isResultInvalid(result) {
+        return !result || !result.action?.type || !result.action?.content;
+    },
+
+    async processMessage(message) {
+        return await processActivations(message.content);
+    },
+
+    async sendActivationResponse(message, type, content) {
+        switch (type) {
+            case 'txt':
+                await message.channel.send(content);
+                break;
+            case 'Lfile':
+                await message.channel.send({ files: [content] });
+                break;
+            case 'Wfile':
+                await message.channel.send(content);
+                break;
+            default:
+                throw new Error(`Unknown activation type: ${type}. Who wrote this?`);
+        }
+    },
+
+    loadIgnoredUsers() {
+        if (!fs.existsSync(ignoreFilePath)) {
+            info('Ignore file not found. Creating a new one.');
+            return {};
+        }
+        const data = fs.readFileSync(ignoreFilePath, 'utf8');
+        info('Ignore file loaded successfully.');
+        return JSON.parse(data);
+    },
+};

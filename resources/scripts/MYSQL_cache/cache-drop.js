@@ -11,15 +11,24 @@ async function clearCache() {
             return JSON.stringify({ status: 404, error: 'Cache file not found.' });
         }
 
-        // clear the cache file
+        // Clear the cache file
         fs.writeFileSync(cacheFilePath, '', 'utf8');
         info('Cache file cleared.');
 
-        // refill the cache with new data from MySQL
+        // Refill the cache with new data from MySQL
         const result = await updateCache();
-        info(result.message);
 
-        return JSON.stringify(result); // return the success response from updateCache
+        if (result.status !== 200) {
+            error(`Cache update failed: ${result.message}`);
+            return JSON.stringify({
+                status: 500,
+                error: 'Failed to update cache after clearing.',
+                details: result.message,
+            });
+        }
+
+        info(result.message);
+        return JSON.stringify(result); // Return the success response from updateCache
     } catch (err) {
         error(`Error during cache clearing or updating: ${err.message}`);
         return JSON.stringify({
@@ -31,4 +40,3 @@ async function clearCache() {
 }
 
 module.exports = { clearCache };
-clearCache();

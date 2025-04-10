@@ -65,7 +65,7 @@ function registerEventHandlers(client) {
         const rest = new REST().setToken(token);
 
         console.log(chalk.yellow('Clearing existing commands...'));
-        await rest.put(Routes.applicationCommands(clientId), { body: [] })
+        await rest.put(Routes.applicationCommands(clientId), { body: [] });
         console.log(chalk.green('Existing commands cleared.'));
 
         const allCommands = Object.values(groupedCommands).flat().map(command => command.data.toJSON());

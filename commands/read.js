@@ -1,9 +1,10 @@
 require('dotenv').config();
 const { SlashCommandBuilder } = require('discord.js');
 const { operation } = require('../resources/scripts/database-operation');
+const { info, error } = require('../resources/scripts/logger');
 
 module.exports = {
-    type: 'user',
+    type: 'admin',
     data: new SlashCommandBuilder()
         .setName('read')
         .setDescription('Read data from the cache or database.')
@@ -29,8 +30,13 @@ module.exports = {
                 .setDescription('The input to search for.')
                 .setRequired(false)),
     async execute(interaction) {
+        console.log(`[DEBUG] /read command executed by user: ${interaction.user.id}`); // Debug log
+
         if (interaction.user.id !== process.env.OWNERID) {
-            return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
+            return interaction.reply({
+                content: 'You do not have permission to use this command.',
+                flags: 64, // Replaces "ephemeral"
+            });
         }
 
         const type = interaction.options.getString('type');
@@ -38,11 +44,23 @@ module.exports = {
         const input = interaction.options.getString('input') || null;
 
         try {
-            const result = await operation('read', input, null, null, null, type, source);
+            info(`[READ COMMAND] Type: ${type}, Source: ${source}, Input: ${input}`);
+            const result = await operation({ opType: 'read', input, readType: type, source }); // Pass 'read' as opType
+
+            if (!result) {
+                return interaction.reply({
+                    content: 'No data found for the given parameters.',
+                    flags: 64, // Replaces "ephemeral"
+                });
+            }
+
             await interaction.reply(`\`\`\`json\n${JSON.stringify(result, null, 2)}\n\`\`\``);
         } catch (err) {
-            console.error(`[ERROR] Failed to execute read command: ${err.message}`);
-            await interaction.reply({ content: `An error occurred while reading data: ${err.message}`, ephemeral: true });
+            error(`[ERROR] Failed to execute read command: ${err.message}`);
+            await interaction.reply({
+                content: `An error occurred while reading data: ${err.message}`,
+                flags: 64, // Replaces "ephemeral"
+            });
         }
     },
 };

@@ -12,6 +12,26 @@ const client = new Client({
     ],
 });
 
+client.on('interactionCreate', async (interaction) => {
+    console.log(`[DEBUG] Interaction received: ${interaction.commandName}`); // Debug log
+
+    if (!interaction.isCommand()) return;
+
+    const command = commandsCollection.get(interaction.commandName);
+
+    if (!command) {
+        console.error(`[ERROR] Command not found: ${interaction.commandName}`);
+        return;
+    }
+
+    try {
+        await command.execute(interaction);
+    } catch (err) {
+        console.error(`[ERROR] Failed to execute command: ${interaction.commandName}`, err);
+        await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+    }
+});
+
 try {
     modeConfig.logger.info(`Bot starting in ${modeConfig.mode} mode...`);
 

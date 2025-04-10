@@ -8,8 +8,8 @@ const ignoreFilePath = path.join(__dirname, '../resources/data/ignored-users.jso
 module.exports = {
     type: 'user',
     data: new SlashCommandBuilder()
-        .setName('message-readability')
-        .setDescription('Manage whether the bot can read your messages.')
+        .setName('message-visibility') // Updated command name
+        .setDescription('Manage whether the bot can see your messages.')
         .addBooleanOption(option =>
             option.setName('input')
                 .setDescription('True to allow, False to ignore. Leave empty to check your current status.')
@@ -59,7 +59,6 @@ module.exports = {
 };
 
 function loadIgnoredUsers() {
-    // Load the ignore list from the file. If it doesn’t exist, create a new one.
     if (!fs.existsSync(ignoreFilePath)) {
         info('Ignore file not found. Creating a new one.');
         return {};
@@ -70,7 +69,6 @@ function loadIgnoredUsers() {
 }
 
 function saveIgnoredUsers(data) {
-    // Save the updated ignore list back to the file.
     fs.writeFileSync(ignoreFilePath, JSON.stringify(data, null, 2), 'utf8');
     info('Ignore file updated successfully.');
 }
