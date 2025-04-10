@@ -15,7 +15,7 @@ function log(message, level = 'INFO') {
         fs.appendFileSync(logFilePath, `${formattedMessage}\n`, 'utf8');
     }
 
-    if (botMode === 'debug' || (logToConsole && botMode === 'production' && (level === 'ERROR' || level === 'WARN' || level === 'CRITICAL' || level === 'SUCCESS'))) {
+    if (shouldLogToConsole(level)) {
         console.log(formattedMessage);
     }
 
@@ -23,6 +23,10 @@ function log(message, level = 'INFO') {
         console.error('[CRITICAL] Halting execution due to a critical error.');
         process.exit(1);
     }
+}
+
+function shouldLogToConsole(level) {
+    return botMode === 'debug' || (logToConsole && botMode === 'production' && (level === 'ERROR' || level === 'WARN' || level === 'CRITICAL' || level === 'SUCCESS'));
 }
 
 function error(message) {

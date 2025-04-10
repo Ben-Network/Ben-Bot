@@ -15,7 +15,7 @@ function monitorCache() {
     info('Monitoring cache file for changes...');
     fs.watch(cacheFilePath, (eventType) => {
         if (eventType === 'change') {
-            info('Cache file modified:', new Date().toISOString());
+            info(`Cache file modified: %{new Date().toISOString()}`);
             createCacheBackup();
         }
     });
@@ -120,7 +120,7 @@ function displayCacheAnalytics() {
         }
 
         const analytics = JSON.parse(fs.readFileSync(analyticsFilePath, 'utf8'));
-        info('Cache Usage Analytics:', analytics);
+        info(`Cache Usage Analytics: ${analytics}`);
     } catch (err) {
         error(`[ERROR] Failed to display cache analytics: ${err.message}`);
     }
@@ -134,7 +134,7 @@ function dumpCacheContents() {
         }
 
         const cacheData = fs.readFileSync(cacheFilePath, 'utf8');
-        info('Cache Contents:', JSON.parse(cacheData));
+        info(`Cache Contents: ${JSON.parse(cacheData)}`);
     } catch (err) {
         error(`[ERROR] Failed to dump cache contents: ${err.message}`);
     }

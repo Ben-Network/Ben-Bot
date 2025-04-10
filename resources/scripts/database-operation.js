@@ -3,7 +3,7 @@ const fs = require('fs');
 const { dbConfig, cacheFilePath, table } = require('./MYSQL_cache/cache-config');
 const { updateCache } = require('./MYSQL_cache/cache-update');
 const { validateCache } = require('./MYSQL_cache/cache-integrity-check');
-const { info, warn, error } = require('./logger');
+const { info, error } = require('./logger');
 
 const connection = mysql.createConnection(dbConfig);
 
@@ -172,7 +172,7 @@ async function modifyCommand(input, action, notes) {
             if (err) {
                 return reject(logDetailedError('modifyCommand', 'database-operation.js', err, { query, params }));
             }
-            info('Command modified successfully:', results);
+            info(`Command modified successfully: $results}`);
             await updateCache();
             resolve(results);
         });
