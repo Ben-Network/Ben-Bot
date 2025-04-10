@@ -15,10 +15,13 @@ Ben Bot is a fun and versatile Discord bot developed by **Ben Network**. What st
 2. [Cloud Hosted](#cloud-hosted)
 2. [Security and Privacy](#security-and-privacy)
 3. [How to Set Up Ben Bot (Self Hosted)](#how-to-set-up-ben-bot)
-4. [How to Use Ben Bot](#how-to-use-ben-bot)
-5. [Contributing](#contributing)
-6. [License](#license)
-7. [Contact](#contact)
+4. [Quick Start Guide](#quick-start-guide)
+5. [FAQs](#faqs)
+6. [Troubleshooting Tips](#troubleshooting-tips)
+7. [How to Use Ben Bot](#how-to-use-ben-bot)
+8. [Contributing](#contributing)
+9. [License](#license)
+10. [Contact](#contact)
 
 ---
 
@@ -105,6 +108,89 @@ Ben Bot is designed with your privacy in mind:
    ```bash
    npm start
    ```
+
+---
+
+## **Quick Start Guide**
+
+Follow these steps to get Ben Bot running quickly:
+
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/Ben-Network/ben-bot.git
+   cd ben-bot
+   ```
+
+2. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Configure the `.env` File**:
+   - Rename `.env.example` to `.env`.
+   - Fill in the required fields (see [Environment Variables](#environment-variables)).
+
+4. **Set Up MySQL**:
+   - Create a database and table using the provided SQL script in the [Setup Section](#how-to-set-up-ben-bot).
+
+5. **Start the Bot**:
+   ```bash
+   npm start
+   ```
+
+---
+
+## **FAQs**
+
+### **1. What happens if the bot doesn’t respond to a keyword?**
+Ensure the keyword exists in the database and is properly formatted. Use the `/read` command to verify.
+
+### **2. How do I debug database connection issues?**
+- Check your `.env` file for correct MySQL credentials.
+- Ensure the MySQL server is running and accessible.
+
+### **3. Can I use a database other than MySQL?**
+Currently, Ben Bot only supports MySQL.
+
+### **4. How do I reset the bot’s cache?**
+Use the `/dropcache` command to clear and refresh the cache.
+
+---
+
+## **Troubleshooting Tips**
+
+### **Common Issues and Solutions**
+
+| **Issue**                          | **Solution**                                                                  |
+|------------------------------------|-------------------------------------------------------------------------------|
+| Bot doesn’t respond to commands    | Ensure the bot has the correct permissions in your Discord server.            |
+| Database connection error          | Verify MySQL credentials and ensure the database is running.                  |
+| Invalid JSON in database           | Use a JSON validator to check and fix the `action` field in the database.     |
+| Cache not updating                 | Use the `/dropcache` command to refresh the cache.                            |
+
+### **Debugging**
+- Run the bot in `debug` mode by setting `BOT_MODE="debug"` in the `.env` file.
+- Check the logs for detailed error messages.
+
+---
+
+## **Environment Variables**
+
+| **Variable**       | **Description**                                                                 |
+|--------------------|---------------------------------------------------------------------------------|
+| `HOST`             | MySQL server host (e.g., `localhost` or an IP address).                         |
+| `USER`             | MySQL username.                                                                 |
+| `PASSWORD`         | MySQL password.                                                                 |
+| `DATABASE`         | MySQL database name.                                                            |
+| `TABLE`            | MySQL table name for storing keywords.                                          |
+| `BOTTOKEN`         | Discord bot token from the Developer Portal.                                    |
+| `BOTID`            | Discord bot ID.                                                                 |
+| `OWNERID`          | Discord user ID of the bot owner.                                               |
+| `BOT_MODE`         | Bot mode (`production`, `debug`, or `interactive`).                             |
+| `LOG_TO_CONSOLE`   | Whether to log to the console (`true` or `false`).                              |
+| `LOG_TO_FILE`      | Whether to log to a file (`true` or `false`).                                   |
+| `HALT_ON_ERROR`    | Whether the bot should stop on errors (`true` or `false`).                      |
+| `LOG_FILE`         | Path to the log file for bot logging.                                           |
 
 ---
 
