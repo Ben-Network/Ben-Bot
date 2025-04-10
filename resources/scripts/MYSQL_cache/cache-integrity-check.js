@@ -16,7 +16,7 @@ async function hashDatabase() {
         await connection.end();
         return hashData(JSON.stringify(rows));
     } catch (err) {
-        error('[ERROR] Failed to hash database:', err.message);
+        error(`[ERROR] Failed to hash database: ${err.message}`);
         throw err;
     }
 }
@@ -26,7 +26,7 @@ function hashCache() {
         const data = fs.readFileSync(cacheFilePath, 'utf8');
         return hashData(data);
     } catch (err) {
-        error('[ERROR] Failed to hash cache:', err.message);
+        error(`[ERROR] Failed to hash cache: ${err.message}`);
         throw err;
     }
 }

@@ -25,7 +25,7 @@ function startDebugMode(client, modeConfig) {
                         modeConfig.logger.warn(`Unknown command in log: ${interactionData.commandName}`);
                     }
                 } catch (err) {
-                    error('Error replaying interaction:', err);
+                    error(`Error replaying interaction: ${err}`);
                 }
             });
         }

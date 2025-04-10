@@ -7,33 +7,22 @@ const { info, warn, error } = require('./logger');
 
 const connection = mysql.createConnection(dbConfig);
 
-async function operation(opType, input, action, authorID, notes, readType, source) {
+async function operation({ opType, input, action, authorID, notes, readType, source }) {
     try {
-        if (!opType) {
-            throw new Error('Operation type (opType) is required.');
-        }
-        if (['add', 'modify'].includes(opType) && !action) {
-            throw new Error('Action is required for add and modify operations.');
+        validateOperationInputs(opType, action);
+
+        const operationHandlers = {
+            add: () => addCommand(input, action, authorID, notes),
+            remove: () => removeCommand(input),
+            modify: () => modifyCommand(input, action, notes),
+            read: () => handleReadOperation(source, readType, input),
+        };
+
+        if (!operationHandlers[opType]) {
+            throw new Error(`Invalid operation type: ${opType}`);
         }
 
-        switch (opType) {
-            case 'add':
-                return await addCommand(input, action, authorID, notes);
-            case 'remove':
-                return await removeCommand(input);
-            case 'modify':
-                return await modifyCommand(input, action, notes);
-            case 'read':
-                if (source === 'cache') {
-                    return await readFromCache(readType, input);
-                } else if (source === 'mysql') {
-                    return await readFromDatabaseWithRetry(readType, input);
-                } else {
-                    throw new Error(`Invalid source: ${source}`);
-                }
-            default:
-                throw new Error(`Invalid operation type: ${opType}`);
-        }
+        return await operationHandlers[opType]();
     } catch (err) {
         error(`Error in operation: ${err.message}`);
         return logDetailedError('operation', 'database-operation.js', err, {
@@ -48,6 +37,32 @@ async function operation(opType, input, action, authorID, notes, readType, sourc
     }
 }
 
+function validateOperationInputs(opType, action) {
+    if (!opType) {
+        throw new Error('Operation type (opType) is required.');
+    }
+    if (['add', 'modify'].includes(opType) && !action) {
+        throw new Error('Action is required for add and modify operations.');
+    }
+}
+
+async function handleReadOperation(source, readType, input) {
+    if (source === 'cache') {
+        return await readFromCache(readType, input);
+    } else if (source === 'mysql') {
+        return await readFromDatabaseWithRetry(readType, input);
+    } else {
+        throw new Error(`Invalid source: ${source}`);
+    }
+}
+function validateOperationInputs(opType, action) {
+    if (!opType) {
+        throw new Error('Operation type (opType) is required.');
+    }
+    if (['add', 'modify'].includes(opType) && !action) {
+        throw new Error('Action is required for add and modify operations.');
+    }
+}
 function logDetailedError(functionName, fileName, error, variables) {
     const errorDetails = {
         status: 500,
@@ -69,35 +84,51 @@ function logDetailedError(functionName, fileName, error, variables) {
 
 async function addCommand(input, action, authorID, notes) {
     try {
-        if (typeof action === 'object') {
-            action = JSON.stringify(action);
-        }
-        if (!validateAction(action)) {
-            throw new Error('Action must be a valid JSON string.');
-        }
-
+        action = prepareAction(action);
+        const params = prepareInsertParams(input, action, authorID, notes);
         const query = `INSERT INTO ${table} (word, action, authorID, notes, activations) VALUES (?, ?, ?, ?, ?)`;
-        const params = [input, action, authorID || null, notes || null, null];
 
         info(`Inserting into ${table}: ${JSON.stringify(params)}`);
-
-        return new Promise((resolve, reject) => {
-            connection.query(query, params, async (err, results) => {
-                if (err) {
-                    return reject(logDetailedError('addCommand', 'database-operation.js', err, { query, params }));
-                }
-                info('Command added successfully:', results);
-                await updateCache();
-                try {
-                    await validateCache();
-                } catch (validationError) {
-                    logDetailedError('addCommand', 'database-operation.js', validationError, { query, params });
-                }
-                resolve(results);
-            });
-        });
+        const results = await executeInsertQuery(query, params);
+        await handleCacheUpdates();
+        return results;
     } catch (err) {
         throw logDetailedError('addCommand', 'database-operation.js', err, { input, action, authorID, notes });
+    }
+}
+
+function prepareAction(action) {
+    if (typeof action === 'object') {
+        action = JSON.stringify(action);
+    }
+    if (!validateAction(action)) {
+        throw new Error('Action must be a valid JSON string.');
+    }
+    return action;
+}
+
+function prepareInsertParams(input, action, authorID, notes) {
+    return [input, action, authorID || null, notes || null, null];
+}
+
+function executeInsertQuery(query, params) {
+    return new Promise((resolve, reject) => {
+        connection.query(query, params, (err, results) => {
+            if (err) {
+                return reject(logDetailedError('executeInsertQuery', 'database-operation.js', err, { query, params }));
+            }
+            info('Command added successfully:', results);
+            resolve(results);
+        });
+    });
+}
+
+async function handleCacheUpdates() {
+    await updateCache();
+    try {
+        await validateCache();
+    } catch (validationError) {
+        logDetailedError('handleCacheUpdates', 'database-operation.js', validationError, {});
     }
 }
 
@@ -120,7 +151,7 @@ async function removeCommand(input) {
             if (err) {
                 return reject(logDetailedError('removeCommand', 'database-operation.js', err, { query, params }));
             }
-            info('Command removed successfully:', results);
+            info(`Command removed successfully: ${results}`);
             await updateCache();
             try {
                 await validateCache();

@@ -34,3 +34,4 @@ async function updateCache() {
 }
 
 module.exports = { updateCache };
+updateCache();

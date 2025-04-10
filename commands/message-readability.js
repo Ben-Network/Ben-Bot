@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
-const { info, warn, error } = require('../resources/scripts/logger');
+const { info, error } = require('../resources/scripts/logger');
 
 const ignoreFilePath = path.join(__dirname, '../resources/data/ignored-users.json');
 

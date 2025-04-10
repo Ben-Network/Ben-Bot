@@ -1,6 +1,5 @@
 require('dotenv').config();
 const path = require('path');
-const { info, error } = require('../logger');
 
 module.exports = {
     dbConfig: {

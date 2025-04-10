@@ -31,3 +31,4 @@ async function clearCache() {
 }
 
 module.exports = { clearCache };
+clearCache();
