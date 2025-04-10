@@ -3,10 +3,10 @@ const path = require('path');
 const { info, error } = require('../logger');
 
 const dbConfig = {
-    host: process.env.HOST,
-    user: process.env.USER,
-    password: process.env.PASSWORD,
-    database: process.env.DATABASE,
+    host: process.env.BENBOT_HOST,
+    user: process.env.BENBOT_USER,
+    password: process.env.BENBOT_PASSWORD,
+    database: process.env.BENBOT_DATABASE,
 };
 
 if (!dbConfig.user) {
@@ -19,7 +19,7 @@ info(`Database connection details: ${JSON.stringify({ host: dbConfig.host, user:
 
 module.exports = {
     dbConfig,
-    table: process.env.TABLE,
+    table: process.env.BENBOT_TABLE,
     cacheFilePath: path.join(__dirname, '../../cache/cache.json'),
     cacheBackupsPath: path.join(__dirname, '../../cache/cache-backups'),
     analyticsFilePath: path.join(__dirname, '../../cache/cache-analytics.json'),
