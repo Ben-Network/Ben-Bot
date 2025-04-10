@@ -72,11 +72,11 @@ Ben Bot is designed with your privacy in mind:
    - Rename `.env.example` to `.env`.
    - Fill in the required fields:
      ```properties
-      HOST="IP or Address"
-      USER="MYSQL Username"
-      PASSWORD="MYSQL User Password"
-      DATABASE="MYSQL Database Name"
-      TABLE="MYSQL Table Name"
+      BENBOT_HOST="IP or Address"
+      BENBOT_USER="MYSQL Username"
+      BENBOT_PASSWORD="MYSQL User Password"
+      BENBOT_DATABASE="MYSQL Database Name"
+      BENBOT_TABLE="MYSQL Table Name"
 
       BOTTOKEN="Discord Bot Token"
       BOTID="Discord Bot ID"
@@ -178,11 +178,11 @@ Use the `/dropcache` command to clear and refresh the cache.
 
 | **Variable**       | **Description**                                                                 |
 |--------------------|---------------------------------------------------------------------------------|
-| `HOST`             | MySQL server host (e.g., `localhost` or an IP address).                         |
-| `USER`             | MySQL username.                                                                 |
-| `PASSWORD`         | MySQL password.                                                                 |
-| `DATABASE`         | MySQL database name.                                                            |
-| `TABLE`            | MySQL table name for storing keywords.                                          |
+| `BENBOT_HOST`             | MySQL server host (e.g., `localhost` or an IP address).                  |
+| `BENBOT_USER`             | MySQL username.                                                          |
+| `BENBOT_PASSWORD`         | MySQL password.                                                          |
+| `BENBOT_DATABASE`         | MySQL database name.                                                     |
+| `BENBOT_TABLE`            | MySQL table name for storing keywords.                                   |
 | `BOTTOKEN`         | Discord bot token from the Developer Portal.                                    |
 | `BOTID`            | Discord bot ID.                                                                 |
 | `OWNERID`          | Discord user ID of the bot owner.                                               |
