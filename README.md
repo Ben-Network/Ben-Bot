@@ -3,8 +3,7 @@
 ![License](https://img.shields.io/badge/License-GPLv3-blue)  
 ![Discord.js](https://img.shields.io/badge/Discord.js-v14.18.0-blue)  
 ![MySQL](https://img.shields.io/badge/MySQL-Required-red)  
-![Contributions](https://img.shields.io/badge/Contributions-Encouraged-brightgreen)
-
+![Contributions](https://img.shields.io/badge/Contributions-Encouraged-brightgreen)  
 [![DeepScan grade](https://deepscan.io/api/teams/26659/projects/29278/branches/940742/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=26659&pid=29278&bid=940742)
 
 Ben Bot is a fun and versatile Discord bot developed by **Ben Network**. What started as an inside joke in 2024 has grown into a fully open-source project. Ben Bot is packed with features like keyword activations, MySQL integration, and a caching system, making it perfect for developers and server admins who want to add some flair to their Discord servers.
