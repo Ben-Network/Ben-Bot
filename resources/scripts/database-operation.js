@@ -31,15 +31,6 @@ async function operation({ opType, input, action, authorID, notes, readType, sou
     }
 }
 
-function validateOperationInputs(opType, action) {
-    if (!opType) {
-        throw new Error('Operation type (opType) is required.');
-    }
-    if (['add', 'modify'].includes(opType) && !action) {
-        throw new Error('Action is required for add and modify operations.');
-    }
-}
-
 async function handleReadOperation(source, readType, input) {
     if (source === 'cache') {
         return await readFromCache(readType, input);
@@ -104,7 +95,7 @@ function executeInsertQuery(query, params) {
             if (err) {
                 return reject(logDetailedError('executeInsertQuery', 'database-operation.js', err, { query, params }));
             }
-            info('Command added successfully:', results);
+            info(`Command added successfully: ${results}`);
             resolve(results);
         });
     });
