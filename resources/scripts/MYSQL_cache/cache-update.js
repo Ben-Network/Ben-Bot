@@ -2,7 +2,7 @@ const fs = require('fs');
 const mysql = require('mysql2/promise');
 const { dbConfig, cacheFilePath, table } = require('./cache-config');
 const { info, error, warn } = require('../logger');
-const { validateCache, markCacheAsUpdated } = require('./cache-integrity-check');
+const { markCacheAsUpdated } = require('./cache-integrity-check');
 
 function isValidEntry(entry) {
     // Validate that the entry has the required properties
