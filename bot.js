@@ -10,6 +10,7 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
     ],
+    shards: 'auto', // I just shardded my pants
 });
 
 client.on('interactionCreate', async (interaction) => {

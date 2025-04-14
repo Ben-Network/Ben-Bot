@@ -8,7 +8,7 @@ const ignoreFilePath = path.join(__dirname, '../resources/data/ignored-users.jso
 // Cooldown stuff, nuggets kept spamming it and lagged out my whole damn computer.
 let globalVariables = {
     lastMSGRunTime: 0,
-    GlobalCooldownTime: 5000, // should I make this configurable in env?
+    GlobalCooldownTime: process.env.MESSAGE_COOLDOWN, // should I make this configurable in env? | Yes.
 };
 
 module.exports = {
