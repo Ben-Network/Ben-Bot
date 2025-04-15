@@ -197,9 +197,7 @@ Use the `/dropcache` command to clear and refresh the cache.
 ## **How to Use Ben Bot**
 
 ### **Invite the Bot**
-If you’re self-hosting Ben Bot, you can generate an invite link [here](https://kindkid27.github.io/Join-Bot-Invite-Generator/#521875611201).   
-This is a tool created by [brockbreacher](https://github.com/brockbreacher) on GitHub, here is his [repo](https://github.com/brockbreacher/Join-Bot-Invite-Generator), here is my [modified version](https://github.com/kindkid27/Join-Bot-Invite-Generator/).   
-I've created a PR on his repo, and if it's accepted I will edit this to go to his link instead.
+If you’re self-hosting Ben Bot, you can generate an invite link [here](https://kindkid27.github.io/Discord-Bot-Invite-Generator/#521875611201).   
 
 ### **Keyword Activations**
 Ben Bot responds to specific keywords with pre-defined actions. Here are some examples:
