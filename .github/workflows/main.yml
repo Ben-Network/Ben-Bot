@@ -1,0 +1,44 @@
+name: Node.js CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release/*
+  push:
+    branches:
+      - nightly/*
+      - development/*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run bot
+        env:
+          BENBOT_DATABASE: ${{ secrets.BENBOT_DATABASE }} 
+          BENBOT_HOST: ${{ secrets.BENBOT_HOST }} 
+          BENBOT_PASSWORD: ${{ secrets.BENBOT_PASSWORD }} 
+          BENBOT_TABLE: ${{ secrets.BENBOT_TABLE }} 
+          BENBOT_USER: ${{ secrets.BENBOT_USER }} 
+          BOTTOKEN: ${{ secrets.BOTTOKEN }} 
+          BOTID: ${{ secrets.BOTID }} 
+          OWNERID: ${{ secrets.OWNERID }} 
+          BOT_MODE: ${{ variables.BOT_MODE }} 
+          HALT_ON_ERROR: ${{ variables.HALT_ON_ERROR }} 
+          LOG_FILE: ${{ variables.LOG_FILE }} 
+          LOG_TO_CONSOLE: ${{ variables.LOG_TO_CONSOLE }} 
+          LOG_TO_FILE: ${{ variables.LOG_TO_FILE }} 
+        run: node bot.js
