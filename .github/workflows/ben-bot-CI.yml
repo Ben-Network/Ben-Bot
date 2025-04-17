@@ -27,7 +27,7 @@ jobs:
           echo "" > bot.log
           echo "" > resources/cache/cache.json
           echo '{ "hits": null, "miss": null}' > resources/cache/cache-analytics.json
-          echo "" > resources\cache\replay.log
+          echo "" > resources/cache/replay.log
         shell: bash
 
       - name: validate release readiness by running the bot
