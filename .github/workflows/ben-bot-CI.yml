@@ -1,0 +1,48 @@
+name: Ben Bot CI 
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release/*
+
+jobs:
+  release-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js # set up node version 16
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install dependencies # install the dependencies
+        run: npm install
+
+      - name: Empty release-specific files 
+        run: |
+          echo "" > bot.log
+          echo "" > resources/cache/cache.json
+          echo '{ "hits": null, "miss": null}' > resources/cache/cache-analytics.json
+          echo "" > resources\cache\replay.log
+        shell: bash
+
+      - name: validate release readiness by running the bot
+        env: # set the environment variables from "Ubuntu 24.04 Test" even though it's not ensured to be 24.04 lol
+          BENBOT_DATABASE: ${{ secrets.BENBOT_DATABASE }} 
+          BENBOT_HOST: ${{ secrets.BENBOT_HOST }} 
+          BENBOT_PASSWORD: ${{ secrets.BENBOT_PASSWORD }} 
+          BENBOT_TABLE: ${{ secrets.BENBOT_TABLE }} 
+          BENBOT_USER: ${{ secrets.BENBOT_USER }} 
+          BOTTOKEN: ${{ secrets.BOTTOKEN }} 
+          BOTID: ${{ secrets.BOTID }} 
+          OWNERID: ${{ secrets.OWNERID }} 
+          BOT_MODE: ${{ vars.BOT_MODE }} 
+          HALT_ON_ERROR: ${{ vars.HALT_ON_ERROR }} 
+          LOG_FILE: ${{ vars.LOG_FILE }} 
+          LOG_TO_CONSOLE: ${{ vars.LOG_TO_CONSOLE }} 
+          LOG_TO_FILE: ${{ vars.LOG_TO_FILE }} 
+        run: node bot.js # run the bot
