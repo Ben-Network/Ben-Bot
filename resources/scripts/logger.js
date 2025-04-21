@@ -1,7 +1,7 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-const logFilePath = path.join(__dirname, '../../' + (process.env.LOG_FILE || 'bot.log'));
+const logFilePath = path.join(path.dirname(new URL(import.meta.url).pathname), `../../${process.env.LOG_FILE || 'bot.log'}`);
 const logToConsole = process.env.LOG_TO_CONSOLE === 'true';
 const logToFile = process.env.LOG_TO_FILE === 'true';
 const botMode = process.env.BOT_MODE || 'production';
@@ -22,7 +22,7 @@ function formatLogMessage(timestamp, level, message) {
 
 function writeToFile(formattedMessage) {
     if (logToFile) {
-        fs.appendFileSync(logFilePath, `${formattedMessage}\n`, 'utf8');
+        fs.appendFileSync(logFilePath, `${formattedMessage}\n`, { encoding: 'utf8' });
     }
 }
 
@@ -35,12 +35,13 @@ function writeToConsole(formattedMessage, level) {
 function handleCriticalError(level) {
     if (haltOnError && level === 'CRITICAL') {
         console.error('[CRITICAL] Halting execution due to a critical error.');
-        process.exit(1);
+        process.exit(1); // eslint-disable-line no-process-exit
     }
 }
 
 function shouldLogToConsole(level) {
-    return botMode === 'debug' || (logToConsole && botMode === 'production' && ['ERROR', 'WARN', 'CRITICAL', 'SUCCESS'].includes(level));
+    return botMode === 'debug' || 
+        (logToConsole && botMode === 'production' && ['ERROR', 'WARN', 'CRITICAL', 'SUCCESS'].includes(level));
 }
 
 function error(message) {
@@ -63,4 +64,4 @@ function success(message) {
     log(message, 'SUCCESS');
 }
 
-module.exports = { log, error, warn, info, critical, success };
+export { log, error, warn, info, critical, success };

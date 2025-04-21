@@ -1,38 +1,31 @@
-const dotenv = require('dotenv');
-const winston = require('winston');
-const { info, error } = require('../resources/scripts/logger');
+import { config } from 'dotenv';
+import { createLogger, format as _format, transports as _transports } from 'winston';
 
-// Load environment variables
-dotenv.config();
+config();
 
-const BOT_MODE = process.env.BOT_MODE || 'production'; // Default to production mode
-const LOG_TO_CONSOLE = process.env.LOG_TO_CONSOLE || 'true';
-const LOG_TO_FILE = process.env.LOG_TO_FILE || 'false';
-const HALT_ON_ERROR = process.env.HALT_ON_ERROR || 'false';
+const BOT_MODE = process.env.BOT_MODE || 'production';
+const LOG_TO_CONSOLE = process.env.LOG_TO_CONSOLE === 'true';
+const LOG_TO_FILE = process.env.LOG_TO_FILE === 'true';
+const HALT_ON_ERROR = process.env.HALT_ON_ERROR === 'true';
 const REPLAY_LOG_FILE = process.env.REPLAY_LOG_FILE || null;
 
-// Validate BOT_MODE
 const validModes = ['interactive', 'debug', 'production'];
 if (!validModes.includes(BOT_MODE)) {
-    error(`Invalid BOT_MODE: ${BOT_MODE}. Defaulting to 'production'.`);
+    console.error(`[ERROR] Invalid BOT_MODE: ${BOT_MODE}. Defaulting to 'production'.`);
 }
 
-// Configure logging
-const logger = winston.createLogger({
+const logger = createLogger({
     level: BOT_MODE === 'debug' ? 'debug' : 'info',
-    format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.printf(({ timestamp, level, message }) => {
-            return `[${timestamp}] [${level.toUpperCase()}]: ${message}`;
-        })
+    format: _format.combine(
+        _format.timestamp(),
+        _format.printf(({ timestamp, level, message }) => `[${timestamp}] [${level.toUpperCase()}]: ${message}`)
     ),
     transports: [
-        ...(LOG_TO_CONSOLE ? [new winston.transports.Console()] : []),
-        ...(LOG_TO_FILE ? [new winston.transports.File({ filename: process.env.LOG_FILE })] : [])
+        ...(LOG_TO_CONSOLE ? [new _transports.Console()] : []),
+        ...(LOG_TO_FILE ? [new _transports.File({ filename: process.env.LOG_FILE || 'bot.log' })] : [])
     ]
 });
 
-// Mode-specific behavior
 const modeConfig = {
     mode: BOT_MODE,
     isInteractive: BOT_MODE === 'interactive',
@@ -43,13 +36,35 @@ const modeConfig = {
     replayLogFile: REPLAY_LOG_FILE
 };
 
-function configureMode(mode) {
+function configureMode(mode = BOT_MODE) {
+    const modeActions = {
+        interactive: () => {
+            logger.info('Interactive mode enabled. Bot will run with user prompts.');
+            logger.level = 'debug';
+        },
+        debug: () => {
+            logger.info('Debug mode enabled. Detailed logs will be shown.');
+            logger.level = 'debug';
+        },
+        production: () => {
+            logger.info('Production mode enabled. Running with optimized settings.');
+            logger.level = 'info';
+        },
+        default: () => {
+            logger.error(`Unknown mode: ${mode}. Defaulting to production.`);
+            logger.level = 'info';
+        }
+    };
+
     try {
-        info(`Configuring mode: ${mode}`);
-        // ...existing code...
+        logger.info(`Configuring mode: ${mode}`);
+        (modeActions[mode] || modeActions.default)();
     } catch (err) {
-        error(`Failed to configure mode: ${err.message}`);
+        logger.error(`Failed to configure mode: ${err.message}`);
+        if (HALT_ON_ERROR) {
+            throw err;
+        }
     }
 }
 
-module.exports = { configureMode, modeConfig };
+export { configureMode, modeConfig };

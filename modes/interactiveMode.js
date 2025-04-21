@@ -1,9 +1,9 @@
-const readline = require('readline');
-const processActivations = require('../resources/scripts/process-activations');
-const { info, error } = require('../resources/scripts/logger');
+import { createInterface } from 'readline';
+import { processActivations } from '../resources/scripts/process-activations.js';
+import { info, error } from '../resources/scripts/logger.js';
 
-module.exports = (client, modeConfig) => {
-    const rl = readline.createInterface({
+export default (client) => {
+    const rl = createInterface({
         input: process.stdin,
         output: process.stdout
     });
@@ -38,7 +38,7 @@ const handleSlashCommand = async (input, client) => {
         }
     };
 
-    const command = client.commands.get(commandName);
+    const command = client.commands?.get(commandName);
     if (command) {
         await command.execute(interaction);
     } else {

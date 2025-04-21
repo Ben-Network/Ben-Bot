@@ -1,15 +1,16 @@
-const fs = require('fs');
-const { cacheFilePath } = require('./cache-config');
-const { info, error } = require('../logger');
+import { existsSync, readFileSync } from 'fs';
+import cacheConfig from './cache-config.js';
+const cacheFilePath = cacheConfig.filePath;
+import { info, error } from '../logger.js';
 
 function lookupInCache(keyword) {
     try {
-        if (!fs.existsSync(cacheFilePath)) {
+        if (!existsSync(cacheFilePath)) {
             error('Cache file does not exist.');
             return null;
         }
 
-        const cacheData = JSON.parse(fs.readFileSync(cacheFilePath, 'utf8'));
+        const cacheData = JSON.parse(readFileSync(cacheFilePath, 'utf8'));
         const result = cacheData.find(entry => entry.word?.toLowerCase() === keyword.toLowerCase());
 
         if (result) {
@@ -25,4 +26,4 @@ function lookupInCache(keyword) {
     }
 }
 
-module.exports = { lookupInCache };
+export { lookupInCache };

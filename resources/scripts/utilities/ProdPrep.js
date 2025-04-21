@@ -29,10 +29,21 @@ function resetAnalytics() {
     }
 }
 
+function resetCache() {
+    try {
+        const cacheData = {};
+        fs.writeFileSync(cacheFilePath, JSON.stringify(cacheData, null, 2), 'utf8');
+        console.log(`[INFO] Cache reset: ${cacheFilePath}`);
+    } catch (err) {
+        console.error(`[ERROR] Failed to reset cache: ${err.message}`);
+    }
+}
+
 async function prep() {
     console.log('[INFO] Preparing bot for production...');
     clearFile(logFilePath);
     clearFile(replayLogFilePath);
+    resetCache();
     resetAnalytics();
     await clearCache();
     console.log('[INFO] Bot is ready for production.');

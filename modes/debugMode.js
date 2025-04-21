@@ -1,5 +1,5 @@
-const fs = require('fs');
-const { info, error } = require('../resources/scripts/logger');
+import { existsSync, readFileSync } from 'fs';
+import { info, error } from '../resources/scripts/logger.js';
 
 function startDebugMode(client, modeConfig) {
     try {
@@ -8,12 +8,12 @@ function startDebugMode(client, modeConfig) {
         if (modeConfig.replayLogFile) {
             info(`Replaying interactions from log file: ${modeConfig.replayLogFile}`);
             
-            if (!fs.existsSync(modeConfig.replayLogFile)) {
+            if (!existsSync(modeConfig.replayLogFile)) {
                 error(`[ERROR] Replay log file not found: ${modeConfig.replayLogFile}`);
                 return;
             }
 
-            const logData = fs.readFileSync(modeConfig.replayLogFile, 'utf-8');
+            const logData = readFileSync(modeConfig.replayLogFile, 'utf-8');
             const interactions = JSON.parse(logData);
 
             interactions.forEach(async (interactionData) => {
@@ -33,5 +33,4 @@ function startDebugMode(client, modeConfig) {
         error(`Error in debug mode: ${err.message}`);
     }
 }
-
-module.exports = { startDebugMode };
+export { startDebugMode };

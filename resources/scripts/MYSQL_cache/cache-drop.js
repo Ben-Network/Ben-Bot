@@ -1,21 +1,19 @@
-const fs = require('fs');
-const { cacheFilePath } = require('./cache-config');
-const { updateCache } = require('./cache-update');
-const { info, error, warn } = require('../logger');
+import { existsSync, writeFileSync } from 'fs';
+const { cacheFilePath } = require('./cache-config.js');
+import { updateCache } from './cache-update.js';
+import { info, error, warn } from '../logger.js';
 
 async function clearCache() {
     try {
         info('Clearing cache...');
-        if (!fs.existsSync(cacheFilePath)) {
+        if (!existsSync(cacheFilePath)) {
             warn('Cache file does not exist. Skipping clear operation.');
             return JSON.stringify({ status: 404, error: 'Cache file not found.' });
         }
 
-        // Clear the cache file
-        fs.writeFileSync(cacheFilePath, '', 'utf8');
+        writeFileSync(cacheFilePath, '', 'utf8');
         info('Cache file cleared.');
 
-        // Refill the cache with new data from MySQL
         const result = await updateCache();
 
         if (result.status !== 200) {
@@ -28,7 +26,7 @@ async function clearCache() {
         }
 
         info(result.message);
-        return JSON.stringify(result); // Return the success response from updateCache
+        return JSON.stringify(result);
     } catch (err) {
         error(`Error during cache clearing or updating: ${err.message}`);
         return JSON.stringify({
@@ -39,4 +37,4 @@ async function clearCache() {
     }
 }
 
-module.exports = { clearCache };
+export { clearCache };

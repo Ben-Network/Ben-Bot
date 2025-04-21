@@ -1,6 +1,6 @@
-const mysql = require('mysql2/promise');
+import { createConnection } from 'mysql2/promise';
 
-module.exports = async function searchKeyword(keyword) {
+export default async function searchKeyword(keyword) {
     const connectionConfig = {
         host: process.env.HOST,
         user: process.env.USER,
@@ -10,7 +10,7 @@ module.exports = async function searchKeyword(keyword) {
     const table = process.env.TABLE;
 
     try {
-        const connection = await mysql.createConnection(connectionConfig);
+        const connection = await createConnection(connectionConfig);
         const [results] = await connection.query(`SELECT action FROM ${table} WHERE word = ?`, [keyword]);
         await connection.end();
 
@@ -25,4 +25,4 @@ module.exports = async function searchKeyword(keyword) {
         console.error(`[ERROR] Database query failed: ${err.message}`);
         return null;
     }
-};
+}

@@ -1,11 +1,15 @@
-const { SlashCommandBuilder } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
-const { info, error } = require('../resources/scripts/logger');
+import { SlashCommandBuilder } from '@discordjs/builders';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { info, error } from '../resources/scripts/logger.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const ignoreFilePath = path.join(__dirname, '../resources/data/ignored-users.json');
 
-module.exports = {
+export default {
     type: 'user',
     data: new SlashCommandBuilder()
         .setName('message-visibility') // Updated command name
