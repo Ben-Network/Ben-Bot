@@ -1,10 +1,10 @@
 // This bot is a shit show, I can't wait to write the documentation for it :D
 import { existsSync, mkdirSync, watch, copyFileSync, readdirSync, statSync, unlinkSync, writeFileSync, readFileSync } from 'fs';
 import { join } from 'path';
-import { cacheFilePath, maxBackupSizeMB, cacheBackupPath, analyticsFilePath } from './cache-config.js';
+import { cacheFilePath, maxBackupSizeMB, cacheBackupsPath, analyticsFilePath } from './cache-config.js';
 import { info, error } from '../logger.js';
 
-const backupDir = cacheBackupPath;
+const backupDir = cacheBackupsPath;
 const lockFilePath = `${cacheFilePath}.lock`;
 
 if (!existsSync(backupDir)) {
@@ -24,7 +24,7 @@ function monitorCache() {
 function createCacheBackup() {
     try {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const backupFilePath = join(cacheBackupPath, `cache-backup-${timestamp}.json`);
+        const backupFilePath = join(cacheBackupsPath, `cache-backup-${timestamp}.json`);
 
         copyFileSync(cacheFilePath, backupFilePath);
         info(`[SUCCESS] Cache backup created at: ${backupFilePath}`);
@@ -36,19 +36,19 @@ function createCacheBackup() {
 
 function truncateOldBackups() {
     try {
-        const files = readdirSync(cacheBackupPath)
+        const files = readdirSync(cacheBackupsPath)
             .map(file => ({
                 name: file,
-                time: statSync(join(cacheBackupPath, file)).mtime.getTime(),
+                time: statSync(join(cacheBackupsPath, file)).mtime.getTime(),
             }))
             .sort((a, b) => a.time - b.time);
 
-        let totalSize = files.reduce((sum, file) => sum + statSync(join(cacheBackupPath, file.name)).size, 0);
+        let totalSize = files.reduce((sum, file) => sum + statSync(join(cacheBackupsPath, file.name)).size, 0);
         const maxSizeBytes = maxBackupSizeMB * 1024 * 1024;
 
         for (const file of files) {
             if (totalSize <= maxSizeBytes) break;
-            const filePath = join(cacheBackupPath, file.name);
+            const filePath = join(cacheBackupsPath, file.name);
             totalSize -= statSync(filePath).size;
             unlinkSync(filePath);
             info(`[INFO] Deleted old backup: ${file.name}`);
