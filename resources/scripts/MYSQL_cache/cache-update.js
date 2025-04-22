@@ -5,19 +5,17 @@ import { info, error, warn } from '../logger.js';
 const { dbConfig, cacheFilePath, table } = cacheConfig;
 
 function isValidEntry(entry) {
-    // Validate that the entry has the required properties
     if (!entry || typeof entry.word !== 'string') {
         return false;
     }
 
-    // Validate the nested action object
     if (typeof entry.action === 'object') {
         const { type, content } = entry.action;
         if (typeof type !== 'string' || typeof content !== 'string') {
             return false;
         }
     } else {
-        return false; // If action is not an object, the entry is invalid
+        return false;
     }
 
     return true;
@@ -54,4 +52,4 @@ async function updateCache() {
     }
 }
 
-export default { updateCache };
+export { updateCache };

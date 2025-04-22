@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { createHash } from 'crypto';
 import { createConnection } from 'mysql2/promise';
 import { dbConfig, cacheFilePath, table } from './cache-config.js';
-import updateCache from './cache-update.js';
+import { updateCache } from './cache-update.js';
 import { info, error } from '../logger.js';
 import { shouldSkipValidation } from './cache-utils.js';
 
