@@ -27,18 +27,19 @@ jobs:
 
       - name: Clear log and cache files
         run: |
+          # Ensure the resources/cache directory exists
+          mkdir -p resources/cache
+          
           # Explicit error handling for each file operation
           if [ -f "bot.log" ]; then echo "" > bot.log; else echo "bot.log not found - skipping"; fi
           if [ -f "resources/cache/cache.json" ]; then 
             echo "" > resources/cache/cache.json
           else 
-            mkdir -p resources/cache
             echo '{ "hits": 0, "miss": 0 }' > resources/cache/cache.json
           fi
           if [ -f "resources/cache/cache-analytics.json" ]; then 
             echo '{ "hits": null, "miss": null}' > resources/cache/cache-analytics.json
           else
-            mkdir -p resources/cache
             echo '{ "hits": null, "miss": null}' > resources/cache/cache-analytics.json
           fi
           if [ -f "resources/cache/replay.log" ]; then 
