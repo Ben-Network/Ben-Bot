@@ -45,7 +45,7 @@ client.on('interactionCreate', async (interaction) => {
 
     if (!interaction.isCommand()) return;
 
-    const command = commandsCollection.get(interaction.commandName);
+    const comand = commandsCollection.get(interaction.commandName);
 
     if (!command) {
         console.error(`[ERROR] Command not found: ${interaction.commandName}`);
