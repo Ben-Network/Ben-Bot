@@ -1,4 +1,4 @@
-name: Ben Bot CI 
+name: Ben Bot CI
 
 on:
   pull_request:
@@ -14,24 +14,32 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Node.js # set up node version 16
+      - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
           node-version: '22'
 
-      - name: Install dependencies # install the dependencies
+      - name: Install dependencies
         run: npm install
 
-      - name: Empty release-specific files 
+      - name: Lint code
+        run: npm run lint
+
+      - name: Empty release-specific files
         run: |
-          echo "" > bot.log
-          echo "" > resources/cache/cache.json
-          echo '{ "hits": null, "miss": null}' > resources/cache/cache-analytics.json
-          echo "" > resources/cache/replay.log
+          echo "" > bot.log || true
+          echo "" > resources/cache/cache.json || true
+          echo '{ "hits": null, "miss": null}' > resources/cache/cache-analytics.json || true
+          echo "" > resources/cache/replay.log || true
         shell: bash
 
-      - name: validate release readiness by running the bot
-        env: # set the environment variables from "Ubuntu 24.04 Test" even though it's not ensured to be 24.04 lol
+      - name: Validate environment variables
+        run: |
+          [[ -z "$BOTTOKEN" || -z "$BOTID" || -z "$OWNERID" ]] && echo "Missing critical env vars" && exit 1
+        shell: bash
+
+      - name: Run bot and check for deployment confirmation
+        env:
           BENBOT_DATABASE: ${{ secrets.BENBOT_DATABASE }} 
           BENBOT_HOST: ${{ secrets.BENBOT_HOST }} 
           BENBOT_PASSWORD: ${{ secrets.BENBOT_PASSWORD }} 
@@ -45,4 +53,35 @@ jobs:
           LOG_FILE: ${{ vars.LOG_FILE }} 
           LOG_TO_CONSOLE: ${{ vars.LOG_TO_CONSOLE }} 
           LOG_TO_FILE: ${{ vars.LOG_TO_FILE }} 
-        run: node bot.js # run the bot
+        run: |
+          OUTPUT=$(node bot.js || echo "error")
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "Successfully deployed" || (echo "❌ Deployment confirmation missing" && exit 1)
+
+      - name: Request review from GitHub Copilot
+        uses: github/cli-action@v1
+        with:
+          script: |
+            gh pr review "$PR_NUMBER" --request --body "Requesting review from GitHub Copilot for deployment readiness."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+
+  release:
+    needs: release-check
+    if: ${{ success() && github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
+          draft: false
+          prerelease: false
