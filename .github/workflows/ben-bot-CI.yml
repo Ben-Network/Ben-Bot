@@ -36,13 +36,6 @@ jobs:
           fi
 
       - name: Validate environment variables
-        run: |
-          if [ -z "$BOTTOKEN" ] || [ -z "$BOTID" ] || [ -z "$OWNERID" ]; then
-            echo "::error::Missing critical environment variables"
-            exit 1
-          fi
-
-      - name: Run bot and verify deployment (with real-time logs)
         env:
           BENBOT_DATABASE: ${{ secrets.BENBOT_DATABASE }}
           BENBOT_HOST: ${{ secrets.BENBOT_HOST }}
@@ -57,6 +50,16 @@ jobs:
           LOG_FILE: ${{ vars.LOG_FILE }}
           LOG_TO_CONSOLE: ${{ vars.LOG_TO_CONSOLE }}
           LOG_TO_FILE: ${{ vars.LOG_TO_FILE }}
+        run: |
+          if [ -z "$BOTTOKEN" ] || [ -z "$BOTID" ] || [ -z "$OWNERID" ]; then
+            echo "::error::Missing critical environment variables"
+            echo "BOTTOKEN: ${BOTTOKEN:+present}"
+            echo "BOTID: ${BOTID:+present}"
+            echo "OWNERID: ${OWNERID:+present}"
+            exit 1
+          fi
+      - name: Run bot and verify deployment (with real-time logs)
+        
         run: |
           # Start bot in background and pipe logs to file
           node bot.js > bot.log 2>&1 &
