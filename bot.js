@@ -12,6 +12,7 @@ const client = new Client({
     ],
 });
 
+
 client.on('ready', async () => {
     try {
         const startTime = Date.now();
@@ -19,23 +20,27 @@ client.on('ready', async () => {
 
         const shardId = client.shard?.ids[0] ?? 'N/A';
 
-        let totalGuildCount = 'undefined';
-        if (client.shard && client.shard.broadcastEval) {
-            totalGuildCount = await client.shard.broadcastEval(c => c.guilds.cache.size)
-                .then(results => results.reduce((acc, count) => acc + count, 0))
-                .catch(() => 'undefined');
+        if (client.shard) {
+            await client.shard.broadcastEval(() => this.readyAt !== null);
+        } else {
+            console.error('[ERROR] Shard manager is not available.');
+            process.exit(1);
         }
+
+        const totalGuildCount = await client.shard.broadcastEval(
+            c => c.guilds.cache.size
+        ).then(results => results.reduce((acc, count) => acc + count, 0));
 
         console.log(`[INFO] Shard ${shardId} is ready. Guilds: ${totalGuildCount}`);
         console.log(`[DEBUG] Shard initialization completed in ${Date.now() - startTime}ms.`);
     } catch (err) {
         console.error(`[ERROR] Failed during shard initialization: ${err.message}`);
-        process.exit(1); // Exit the process if initialization fails
+        process.exit(1);
     }
 });
 
 client.on('interactionCreate', async (interaction) => {
-    console.log(`[DEBUG] Interaction received: ${interaction.commandName}`); // Debug log
+    console.log(`[DEBUG] Interaction received: ${interaction.commandName}`);
 
     if (!interaction.isCommand()) return;
 

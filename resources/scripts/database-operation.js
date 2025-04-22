@@ -1,4 +1,5 @@
-import { createConnection, mysql } from 'mysql2/promise';
+import MYSQLpkg from 'mysql2/promise';
+const { createConnection, mysql } = MYSQLpkg;
 import { readFileSync } from 'fs';
 import { dbConfig, cacheFilePath, table } from './MYSQL_cache/cache-config.js';
 import updateCache from './MYSQL_cache/cache-update.js';
@@ -27,7 +28,7 @@ function logDetailedError(functionName, fileName, error, variables) {
 async function testDatabaseConnection() {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        await connection.ping(); // Test the connection
+        await connection.ping();
         info('[INFO] Database connection successful.');
         await connection.end();
     } catch (err) {

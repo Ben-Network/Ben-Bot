@@ -1,6 +1,7 @@
 import { existsSync, writeFileSync } from 'fs';
-const { cacheFilePath } = require('./cache-config.js');
-import { updateCache } from './cache-update.js';
+import { cacheFilePath } from './cache-config.js';
+import cacheUpdate from './cache-update.js';
+const { updateCache } = cacheUpdate;
 import { info, error, warn } from '../logger.js';
 
 async function clearCache() {

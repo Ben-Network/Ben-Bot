@@ -8,6 +8,7 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const resolvePath = (...segments) => path.resolve(__dirname, ...segments);
 
 const dbConfig = {
     host: process.env.BENBOT_HOST,
@@ -16,6 +17,7 @@ const dbConfig = {
     database: process.env.BENBOT_DATABASE,
     port: process.env.BENBOT_PORT || 3306,
 };
+const table = process.env.BENBOT_TABLE;
 
 if (!dbConfig.user) {
     error('Database user is not set. Check your .env file.');
@@ -31,11 +33,23 @@ info(
     })}`
 );
 
+const cacheFilePath = path.join(__dirname, '../../cache/cache.json');
+const cacheBackupsPath = resolvePath('../../cache/cache-backups');
+const analyticsFilePath = resolvePath('../../cache/cache-analytics.json');
+
+export {
+    dbConfig,
+    table,
+    cacheFilePath,
+    cacheBackupsPath,
+    analyticsFilePath,
+};
+
 export default {
     dbConfig,
-    table: process.env.BENBOT_TABLE,
-    cacheFilePath: path.join(__dirname, '../../cache/cache.json'),
-    cacheBackupsPath: path.join(__dirname, '../../cache/cache-backups'),
-    analyticsFilePath: path.join(__dirname, '../../cache/cache-analytics.json'),
+    table,
+    cacheFilePath,
+    cacheBackupsPath,
+    analyticsFilePath,
     maxBackupSizeMB: 10,
 };

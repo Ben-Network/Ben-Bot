@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import processActivations from '../resources/scripts/process-activations.js';
 import { info, warn, error } from '../resources/scripts/logger.js';
 
-// Fix for __dirname in ES Modules
+// add these cus I don't feel like changing everything to use path.join
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = join(__filename, '..');
 
@@ -13,7 +13,7 @@ const ignoreFilePath = join(__dirname, '../resources/data/ignored-users.json');
 // Cooldown stuff, nuggets kept spamming it and lagged out my whole damn computer.
 let globalVariables = {
     lastMSGRunTime: 0,
-    GlobalCooldownTime: process.env.MESSAGE_COOLDOWN, // should I make this configurable in env? | Yes.
+    GlobalCooldownTime: process.env.MESSAGE_COOLDOWN || 5000, // should I make this configurable in env? | Yes.
 };
 
 export const name = 'messageCreate';

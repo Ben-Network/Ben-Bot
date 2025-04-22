@@ -10,3 +10,4 @@ function shouldSkipValidation() {
 }
 
 export { markCacheAsUpdated, shouldSkipValidation };
+export default { markCacheAsUpdated, shouldSkipValidation };

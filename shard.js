@@ -1,24 +1,17 @@
-import { ClusterManager } from 'discord.js-cluster';
+import { ShardingManager } from 'discord.js';
 import dotenv from 'dotenv';
-import path from 'path';
-import { pathToFileURL } from 'url';
-
 dotenv.config();
 
-// Convert bot.js path to a file:// URL
-const botFilePath = pathToFileURL(path.resolve('./bot.js')).toString();
-
-const manager = new ClusterManager(botFilePath, {
+const managerialStaff = new ShardingManager("bot.js", {
     token: process.env.BOTTOKEN,
-    totalShards: 'auto',
-    shardsPerCluster: 1,
+    totalShards: "auto",
+    shardList: "auto",
     mode: 'process',
-    timeout: 180000,
+    respawn: true,
 });
 
-manager.on('clusterCreate', (cluster) => {
-    const shardList = cluster.shardList ? cluster.shardList.join(', ') : 'N/A';
-    console.log(`[INFO] Launched cluster ${cluster.id} with shards: ${shardList}`);
+managerialStaff.spawn().then(() => {
+    console.log(`[INFO] All shards [${managerialStaff.totalShards}] launched successfully.`);
+}).catch((error) => {
+    console.error('[ERROR] Failed to launch shards:', error);
 });
-
-manager.spawn();

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'fs';
 import cacheConfig from './cache-config.js';
-const cacheFilePath = cacheConfig.filePath;
 import { info, error } from '../logger.js';
+const { cacheFilePath } = cacheConfig;
 
 function lookupInCache(keyword) {
     try {

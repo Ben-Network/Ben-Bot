@@ -2,7 +2,6 @@ import { writeFileSync } from 'fs';
 import { createConnection } from 'mysql2/promise';
 import cacheConfig from './cache-config.js';
 import { info, error, warn } from '../logger.js';
-import markCacheAsUpdated from './cache-utils.js';
 const { dbConfig, cacheFilePath, table } = cacheConfig;
 
 function isValidEntry(entry) {
@@ -48,7 +47,6 @@ async function updateCache() {
         writeFileSync(cacheFilePath, JSON.stringify(validRows, null, 2), 'utf8');
         info(`[SUCCESS] Cache updated successfully. Data written to: ${cacheFilePath}`);
 
-        markCacheAsUpdated(); // Mark cache as updated to skip validation
         return { status: 200, message: 'Cache updated successfully.' };
     } catch (err) {
         error(`[ERROR] Failed to update cache: ${err.message}`);
@@ -56,4 +54,4 @@ async function updateCache() {
     }
 }
 
-export { updateCache };
+export default { updateCache };
