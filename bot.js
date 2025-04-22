@@ -21,7 +21,7 @@ client.on('ready', async () => {
         const shardId = client.shard?.ids[0] ?? 'N/A';
 
         if (client.shard) {
-            await client.shard.broadcastEval(() => this.readyAt !== null);
+            await client.shard.broadcastEval(function () { return this.readyAt !== null; });
         } else {
             console.error('[ERROR] Shard manager is not available.');
             process.exit(1);
