@@ -96,18 +96,13 @@ jobs:
         run: |
           # Start bot with full environment dump for debugging
           env > env.dump
-          node bot.js > bot.log 2>&1 &
+          node shard.js > bot.log 2>&1 &
           BOT_PID=$!
           echo "Bot started (PID: $BOT_PID)"
 
           # Extended success patterns (60 second timeout)
           SUCCESS_PATTERNS=(
-            "Successfully deployed [[:digit:],]+ commands"
             "All shards \[[[:digit:],]+\] launched"
-            "Ready! Logged in as"
-            "Client ready"
-            "All systems operational"
-            "Existing commands cleared."
           )
           PATTERN=$(IFS="|"; echo "${SUCCESS_PATTERNS[*]}")
 
