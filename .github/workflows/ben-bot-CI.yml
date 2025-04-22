@@ -1,0 +1,140 @@
+name: Ben Bot CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release/*
+
+env:
+  # Global environment variables
+  NODE_ENV: production
+  LOG_TO_CONSOLE: true
+  LOG_TO_FILE: false
+  HALT_ON_ERROR: false
+
+jobs:
+  release-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint code (non-blocking)
+        continue-on-error: true
+        run: npm run lint
+
+      - name: Initialize workspace
+        run: |
+          mkdir -p resources/cache
+          : > bot.log
+          echo '{"hits":0,"miss":0}' > resources/cache/cache.json
+          echo '{"hits":null,"miss":null}' > resources/cache/cache-analytics.json
+          : > resources/cache/replay.log
+
+      - name: Validate all required secrets
+        env:
+          BENBOT_DATABASE: ${{ secrets.BENBOT_DATABASE }}
+          BENBOT_HOST: ${{ secrets.BENBOT_HOST }}
+          BENBOT_PASSWORD: ${{ secrets.BENBOT_PASSWORD }}
+          BENBOT_TABLE: ${{ secrets.BENBOT_TABLE }}
+          BENBOT_USER: ${{ secrets.BENBOT_USER }}
+          BOTTOKEN: ${{ secrets.BOTTOKEN }}
+          BOTID: ${{ secrets.BOTID }}
+          OWNERID: ${{ vars.OWNERID }}
+          BOT_MODE: ${{ vars.BOT_MODE }}
+          HALT_ON_ERROR: ${{ vars.HALT_ON_ERROR }}
+          LOG_FILE: ${{ vars.LOG_FILE }}
+          LOG_TO_CONSOLE: ${{ vars.LOG_TO_CONSOLE }}
+          LOG_TO_FILE: ${{ vars.LOG_TO_FILE }}
+          REQUIRED_SECRETS: >
+            BENBOT_DATABASE BENBOT_HOST BENBOT_PASSWORD
+            BENBOT_TABLE BENBOT_USER
+            BENBOT_PASSWORD BENBOT_TABLE
+            BENBOT_USER BOTTOKEN
+            BOTID OWNERID BOT_MODE HALT_ON_ERROR
+            LOG_FILE LOG_TO_CONSOLE LOG_TO_FILE
+        run: |
+          echo "Validating all required secrets..."
+          missing_secrets=()
+          for secret in $REQUIRED_SECRETS; do
+            if [ -z "${!secret}" ]; then
+              missing_secrets+=("$secret")
+            fi
+          done
+
+          if [ ${#missing_secrets[@]} -gt 0 ]; then
+            echo "::error::Missing required secrets: ${missing_secrets[*]}"
+            exit 1
+          fi
+          echo "All required secrets are present"
+
+      - name: Run bot with strict validation
+        env:
+          BENBOT_DATABASE: ${{ secrets.BENBOT_DATABASE }}
+          BENBOT_HOST: ${{ secrets.BENBOT_HOST }}
+          BENBOT_PASSWORD: ${{ secrets.BENBOT_PASSWORD }}
+          BENBOT_TABLE: ${{ secrets.BENBOT_TABLE }}
+          BENBOT_USER: ${{ secrets.BENBOT_USER }}
+          BOTTOKEN: ${{ secrets.BOTTOKEN }}
+          BOTID: ${{ secrets.BOTID }}
+          OWNERID: ${{ vars.OWNERID }}
+          BOT_MODE: ${{ vars.BOT_MODE }}
+          HALT_ON_ERROR: ${{ vars.HALT_ON_ERROR }}
+          LOG_FILE: ${{ vars.LOG_FILE }}
+          LOG_TO_CONSOLE: ${{ vars.LOG_TO_CONSOLE }}
+          LOG_TO_FILE: ${{ vars.LOG_TO_FILE }}
+        run: |
+          # Start bot with full environment dump for debugging
+          env > env.dump
+          node bot.js > bot.log 2>&1 &
+          BOT_PID=$!
+          echo "Bot started (PID: $BOT_PID)"
+
+          # Extended success patterns (60 second timeout)
+          SUCCESS_PATTERNS=(
+            "Successfully deployed [[:digit:],]+ commands"
+            "All shards \[[[:digit:],]+\] launched"
+            "Ready! Logged in as"
+            "Client ready"
+            "All systems operational"
+            "Existing commands cleared."
+          )
+          PATTERN=$(IFS="|"; echo "${SUCCESS_PATTERNS[*]}")
+
+          for i in {1..60}; do
+            if grep -q -E "$PATTERN" bot.log; then
+              echo "✅ Verified deployment with pattern:"
+              grep -m1 -E "$PATTERN" bot.log
+              kill $BOT_PID 2>/dev/null || true
+              exit 0
+            fi
+            sleep 1
+          done
+
+          # Failure handling
+          echo "::error::Deployment verification failed (60s timeout)"
+          echo "=== Environment Dump ==="
+          grep -v -E 'BOTTOKEN|PASSWORD' env.dump
+          echo "=== Last 100 Log Lines ==="
+          tail -n 100 bot.log
+          kill $BOT_PID 2>/dev/null || true
+          exit 1
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bot-debug-logs
+          path: |
+            bot.log
+            env.dump
