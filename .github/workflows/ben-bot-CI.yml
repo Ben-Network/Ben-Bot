@@ -174,5 +174,5 @@ jobs:
           tag_name: v${{ env.NEW_VERSION }}
           name: v${{ env.NEW_VERSION }}
           body_path: CHANGELOG.md
-          draft: false
-          prerelease: false
+          draft: true
+          prerelease: true
