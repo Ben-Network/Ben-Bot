@@ -4,13 +4,18 @@ const { commandsCollection, registerEventHandlers } = require('./command-handler
 const { modeConfig } = require('./modes/modeConfig');
 const { info, error } = require('./resources/scripts/logger');
 
+if (!process.env.BOTTOKEN) {
+  console.error("FATAL: BOTTOKEN is required");
+  console.error("Current environment variables:", process.env);
+  process.exit(1);
+}
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
     ],
-    shards: 'auto', // I just shardded my pants
 });
 
 client.on('interactionCreate', async (interaction) => {
