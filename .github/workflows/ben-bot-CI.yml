@@ -49,9 +49,12 @@ jobs:
 
       - name: Validate environment variables
         run: |
-          if [ -z "$BOTTOKEN" ] || [ -z "$BOTID" ] || [ -z "$OWNERID" ]; then
-            echo "::error::Missing critical environment variables"
-            exit 1
+          MISSING_VARS=""
+          if [ -z "$BOTTOKEN" ]; then MISSING_VARS="$MISSING_VARS BOTTOKEN"; fi
+          if [ -z "$BOTID" ]; then MISSING_VARS="$MISSING_VARS BOTID"; fi
+          if [ -z "$OWNERID" ]; then MISSING_VARS="$MISSING_VARS OWNERID"; fi
+          if [ -n "$MISSING_VARS" ]; then
+            echo "::error::Missing critical environment variables:$MISSING_VARS"
           fi
 
       - name: Run bot and check deployment output
