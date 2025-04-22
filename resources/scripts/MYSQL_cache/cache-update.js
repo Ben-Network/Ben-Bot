@@ -54,4 +54,4 @@ async function updateCache() {
     }
 }
 
-export default { updateCache };
+export { updateCache };

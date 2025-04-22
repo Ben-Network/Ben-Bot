@@ -36,13 +36,14 @@ info(
 const cacheFilePath = path.join(__dirname, '../../cache/cache.json');
 const cacheBackupsPath = resolvePath('../../cache/cache-backups');
 const analyticsFilePath = resolvePath('../../cache/cache-analytics.json');
-
+const maxBackupSizeMB = 10;
 export {
     dbConfig,
     table,
     cacheFilePath,
     cacheBackupsPath,
     analyticsFilePath,
+    maxBackupSizeMB,
 };
 
 export default {
@@ -51,5 +52,5 @@ export default {
     cacheFilePath,
     cacheBackupsPath,
     analyticsFilePath,
-    maxBackupSizeMB: 10,
+    maxBackupSizeMB,
 };

@@ -3,7 +3,7 @@ const { createConnection, mysql } = MYSQLpkg;
 import { readFileSync } from 'fs';
 import { dbConfig, cacheFilePath, table } from './MYSQL_cache/cache-config.js';
 import updateCache from './MYSQL_cache/cache-update.js';
-import { validateCache } from './MYSQL_cache/cache-integrity-check.js';
+import { validateCache } from './MYSQL_cache/cache-updateCacheintegrity-check.js';
 import { info, error } from './logger.js';
 
 function logDetailedError(functionName, fileName, error, variables) {

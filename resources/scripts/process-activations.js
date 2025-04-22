@@ -54,3 +54,4 @@ function parseActivation(result) {
     }
     return result.action;
 }
+export { processActivations }
