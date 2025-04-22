@@ -14,13 +14,15 @@ export async function execute(interaction) {
             interaction.client.shard.fetchClientValues('guilds.cache.size'),
             interaction.client.shard.broadcastEval(c => c.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)),
             interaction.client.shard.fetchClientValues('uptime'),
-            interaction.client.shard.broadcastEval(() => ({
-                rss: process.memoryUsage().rss,
-                heapUsed: process.memoryUsage().heapUsed,
-                cpuUsage: process.cpuUsage(),
-                shardId: process.env.SHARD_ID || 0,
-                monitoredGuilds: [...this.guilds.cache.keys()],
-            })),
+            interaction.client.shard.broadcastEval(function () {
+                return {
+                    rss: process.memoryUsage().rss,
+                    heapUsed: process.memoryUsage().heapUsed,
+                    cpuUsage: process.cpuUsage(),
+                    shardId: process.env.SHARD_ID || 0,
+                    monitoredGuilds: [...this.guilds.cache.keys()],
+                };
+            }),
         ];
 
         const results = await Promise.all(promises);
