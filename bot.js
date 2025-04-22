@@ -18,20 +18,21 @@ client.on('ready', async () => {
         const startTime = Date.now();
         console.log(`[DEBUG] Shard initialization started.`);
 
-        const shardId = client.shard?.ids[0] ?? 'N/A';
+        const shardId = client.shard?.ids?.[0] ?? 'N/A'; // Ensure shardId is safely accessed
 
+        // Ensure all shards are ready before calculating total guild count
         if (client.shard) {
-            await client.shard.broadcastEval(function () { return this.readyAt !== null; });
+            await client.shard.broadcastEval(client => client && client.readyAt !== null);
+
+            const totalGuildCount = await client.shard.broadcastEval(
+                client => client ? client.guilds.cache.size : 0
+            ).then(results => results.reduce((acc, count) => acc + count, 0));
+
+            console.log(`[INFO] Shard ${shardId} is ready. Guilds: ${totalGuildCount}`);
         } else {
-            console.error('[ERROR] Shard manager is not available.');
-            process.exit(1);
+            console.warn('[WARN] Shard manager is not available. Skipping guild count calculation.');
         }
 
-        const totalGuildCount = await client.shard.broadcastEval(
-            c => c.guilds.cache.size
-        ).then(results => results.reduce((acc, count) => acc + count, 0));
-
-        console.log(`[INFO] Shard ${shardId} is ready. Guilds: ${totalGuildCount}`);
         console.log(`[DEBUG] Shard initialization completed in ${Date.now() - startTime}ms.`);
     } catch (err) {
         console.error(`[ERROR] Failed during shard initialization: ${err.message}`);
