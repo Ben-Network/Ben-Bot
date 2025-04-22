@@ -50,7 +50,7 @@ jobs:
           BENBOT_USER: ${{ secrets.BENBOT_USER }}
           BOTTOKEN: ${{ secrets.BOTTOKEN }}
           BOTID: ${{ secrets.BOTID }}
-          OWNERID: ${{ secrets.OWNERID }}
+          OWNERID: ${{ vars.OWNERID }}
           BOT_MODE: ${{ vars.BOT_MODE }}
           HALT_ON_ERROR: ${{ vars.HALT_ON_ERROR }}
           LOG_FILE: ${{ vars.LOG_FILE }}
@@ -87,7 +87,7 @@ jobs:
           BENBOT_USER: ${{ secrets.BENBOT_USER }}
           BOTTOKEN: ${{ secrets.BOTTOKEN }}
           BOTID: ${{ secrets.BOTID }}
-          OWNERID: ${{ secrets.OWNERID }}
+          OWNERID: ${{ vars.OWNERID }}
           BOT_MODE: ${{ vars.BOT_MODE }}
           HALT_ON_ERROR: ${{ vars.HALT_ON_ERROR }}
           LOG_FILE: ${{ vars.LOG_FILE }}
