@@ -6,7 +6,7 @@ const { info, error } = require('./resources/scripts/logger');
 
 if (!process.env.BOTTOKEN) {
   console.error("FATAL: BOTTOKEN is required");
-  console.error("Current environment variables:", process.env);
+  console.error("Please ensure the BOTTOKEN environment variable is set in your .env file or system environment.");
   process.exit(1);
 }
 
