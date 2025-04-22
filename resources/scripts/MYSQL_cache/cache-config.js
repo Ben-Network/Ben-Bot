@@ -8,7 +8,6 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const resolvePath = (...segments) => path.resolve(__dirname, ...segments);
 
 const dbConfig = {
     host: process.env.BENBOT_HOST,
@@ -34,8 +33,8 @@ info(
 );
 
 const cacheFilePath = path.join(__dirname, '../../cache/cache.json');
-const cacheBackupsPath = resolvePath('../../cache/cache-backups');
-const analyticsFilePath = resolvePath('../../cache/cache-analytics.json');
+const cacheBackupsPath = path.join(__dirname, '../../cache/cache-backups');
+const analyticsFilePath = path.join(__dirname, '../../cache/cache-analytics.json');
 const maxBackupSizeMB = 10;
 export {
     dbConfig,
