@@ -43,11 +43,26 @@ jobs:
 
       - name: Validate all required secrets
         env:
+          BENBOT_DATABASE: ${{ secrets.BENBOT_DATABASE }}
+          BENBOT_HOST: ${{ secrets.BENBOT_HOST }}
+          BENBOT_PASSWORD: ${{ secrets.BENBOT_PASSWORD }}
+          BENBOT_TABLE: ${{ secrets.BENBOT_TABLE }}
+          BENBOT_USER: ${{ secrets.BENBOT_USER }}
+          BOTTOKEN: ${{ secrets.BOTTOKEN }}
+          BOTID: ${{ secrets.BOTID }}
+          OWNERID: ${{ secrets.OWNERID }}
+          BOT_MODE: ${{ vars.BOT_MODE }}
+          HALT_ON_ERROR: ${{ vars.HALT_ON_ERROR }}
+          LOG_FILE: ${{ vars.LOG_FILE }}
+          LOG_TO_CONSOLE: ${{ vars.LOG_TO_CONSOLE }}
+          LOG_TO_FILE: ${{ vars.LOG_TO_FILE }}
           REQUIRED_SECRETS: >
-            BOTTOKEN BOTID OWNERID
-            BENBOT_DATABASE BENBOT_HOST
+            BENBOT_DATABASE BENBOT_HOST BENBOT_PASSWORD
+            BENBOT_TABLE BENBOT_USER
             BENBOT_PASSWORD BENBOT_TABLE
-            BENBOT_USER
+            BENBOT_USER BOTTOKEN
+            BOTID OWNERID BOT_MODE HALT_ON_ERROR
+            LOG_FILE LOG_TO_CONSOLE LOG_TO_FILE
         run: |
           echo "Validating all required secrets..."
           missing_secrets=()
