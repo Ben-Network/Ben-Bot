@@ -1,7 +1,7 @@
-const { info, warn, error } = require('./logger');
-const { lookupInCache } = require('./MYSQL_cache/cache-lookup');
+import { info, warn, error } from './logger.js';
+import { lookupInCache } from './MYSQL_cache/cache-lookup.js';
 
-module.exports = async function processActivations(message) {
+export default async function processActivations(message) {
     try {
         info(`Looking up keyword in cache: ${message}`);
 
@@ -18,7 +18,7 @@ module.exports = async function processActivations(message) {
         error(`Error processing activations: ${err.message}`);
         return null;
     }
-};
+}
 
 function getWordsFromMessage(message) {
     return message.toLowerCase().split(" ");
@@ -54,3 +54,4 @@ function parseActivation(result) {
     }
     return result.action;
 }
+export { processActivations }

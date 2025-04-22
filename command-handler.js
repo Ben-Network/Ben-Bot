@@ -1,8 +1,12 @@
-require('dotenv').config();
-const { REST, Routes, Collection } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
-const chalk = require('chalk');
+import 'dotenv/config';
+import { REST, Routes, Collection } from 'discord.js';
+import fs from 'fs';
+import path from 'path';
+import chalk from 'chalk';
+import { fileURLToPath, pathToFileURL } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const clientId = process.env.BOTID;
 const token = process.env.BOTTOKEN;
@@ -13,49 +17,67 @@ if (!token) {
 }
 
 const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+const commandFiles = fs.readdirSync(commandsPath).filter((file) => file.endsWith('.js'));
 
 const eventsPath = path.join(__dirname, 'events');
-const eventFiles = fs.existsSync(eventsPath) ? fs.readdirSync(eventsPath).filter(file => file.endsWith('.js')) : [];
+const eventFiles = fs.existsSync(eventsPath) ? fs.readdirSync(eventsPath).filter((file) => file.endsWith('.js')) : [];
 
-const groupedCommands = { admin: [], user: [], activation: [], uncategorized: [] };
+const groupedCommands = { admin: [], user: [], uncategorized: [] };
 const commandsCollection = new Collection();
 
-for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    const command = require(filePath);
+async function loadCommands() {
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        try {
+            const command = await import(pathToFileURL(filePath).toString());
 
-    if (command.data && command.execute) {
-        const commandType = command.type || 'uncategorized';
-        groupedCommands[commandType]?.push(command);
-        commandsCollection.set(command.data.name, command);
+            if (command.data && command.execute) {
+                const commandType = command.type || 'uncategorized';
+                groupedCommands[commandType]?.push(command);
+                commandsCollection.set(command.data.name, command);
 
-        if (!command.type) {
-            console.warn(chalk.yellow(`[WARNING] "${file}" is missing a "type" property. Categorized as "uncategorized".`));
+                if (!command.type) {
+                    console.warn(chalk.yellow(`[WARNING] "${file}" is missing a "type" property. Categorized as "uncategorized".`));
+                }
+            } else {
+                console.error(chalk.red(`[ERROR] Unable to load "${file}", it is missing required "data" or "execute" properties.`));
+            }
+        } catch (err) {
+            console.error(chalk.red(`[ERROR] Failed to load command "${file}": ${err.message}`));
         }
-    } else {
-        console.error(chalk.red(`[ERROR] "${file}" is missing required "data" or "execute" properties.`));
     }
 }
 
-console.log(chalk.blue.bold('=== Commands Loaded ==='));
-Object.entries(groupedCommands).forEach(([type, commands]) => {
-    console.log(chalk.green.bold(`\n[${type.toUpperCase()} COMMANDS]`));
-    commands.forEach(command => console.log(chalk.cyan(`- ${command.data.name}`)));
-});
+(async () => {
+    await loadCommands();
 
-function registerEventHandlers(client) {
+    console.log(chalk.blue.bold('=== Commands Loaded ==='));
+    Object.entries(groupedCommands).forEach(([type, commands]) => {
+        console.log(chalk.green.bold(`\n[${type.toUpperCase()} COMMANDS]`));
+        commands.forEach((command) => console.log(chalk.cyan(`- ${command.data.name}`)));
+    });
+})();
+
+export async function registerEventHandlers(client) {
     console.log(chalk.blue.bold('=== Event Handlers Loaded ==='));
     for (const file of eventFiles) {
         const filePath = path.join(eventsPath, file);
-        const event = require(filePath);
+        try {
+            const event = await import(pathToFileURL(filePath).toString());
 
-        if (event.name && event.execute) {
-            const handler = (...args) => event.execute(...args);
-            event.once ? client.once(event.name, handler) : client.on(event.name, handler);
-            console.log(chalk.green(`[EVENT LOADED] ${event.name}`));
-        } else {
-            console.error(chalk.red(`[ERROR] "${file}" is missing required "name" or "execute" properties.`));
+            if (event.name && event.execute) {
+                const handler = (...args) => event.execute(...args);
+                if (event.once) {
+                    client.once(event.name, handler);
+                } else {
+                    client.on(event.name, handler);
+                }
+                console.log(chalk.green(`[EVENT LOADED] ${event.name}`));
+            } else {
+                console.error(chalk.red(`[ERROR] "${file}" is missing required "name" or "execute" properties.`));
+            }
+        } catch (err) {
+            console.error(chalk.red(`[ERROR] Failed to load event "${file}": ${err.message}`));
         }
     }
 }
@@ -68,7 +90,7 @@ function registerEventHandlers(client) {
         await rest.put(Routes.applicationCommands(clientId), { body: [] });
         console.log(chalk.green('Existing commands cleared.'));
 
-        const allCommands = Object.values(groupedCommands).flat().map(command => command.data.toJSON());
+        const allCommands = Object.values(groupedCommands).flat().map((command) => command.data.toJSON());
         console.log(chalk.blue(`Deploying ${allCommands.length} global application (/) commands.`));
 
         const data = await rest.put(Routes.applicationCommands(clientId), { body: allCommands });
@@ -78,4 +100,4 @@ function registerEventHandlers(client) {
     }
 })();
 
-module.exports = { commandsCollection, registerEventHandlers };
+export { commandsCollection };

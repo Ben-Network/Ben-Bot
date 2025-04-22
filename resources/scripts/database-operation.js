@@ -1,11 +1,41 @@
-const mysql = require('mysql2');
-const fs = require('fs');
-const { dbConfig, cacheFilePath, table } = require('./MYSQL_cache/cache-config');
-const { updateCache } = require('./MYSQL_cache/cache-update');
-const { validateCache } = require('./MYSQL_cache/cache-integrity-check');
-const { info, error } = require('./logger');
+import MYSQLpkg from 'mysql2/promise';
+const { createConnection, mysql } = MYSQLpkg;
+import { readFileSync } from 'fs';
+import { dbConfig, cacheFilePath, table } from './MYSQL_cache/cache-config.js';
+import updateCache from './MYSQL_cache/cache-update.js';
+import { validateCache } from './MYSQL_cache/cache-updateCacheintegrity-check.js';
+import { info, error } from './logger.js';
 
-const connection = mysql.createConnection(dbConfig);
+function logDetailedError(functionName, fileName, error, variables) {
+    const errorDetails = {
+        status: 500,
+        file: fileName,
+        function: functionName,
+        message: error.message,
+        stack: error.stack,
+        variables,
+        timestamp: new Date().toISOString(),
+    };
+
+    error(`[${fileName}] [${functionName}] Message: ${error.message}`);
+    error(`[${fileName}] [${functionName}] Stack Trace: ${error.stack}`);
+    error(`[${fileName}] [${functionName}] Variables: ${JSON.stringify(variables, null, 2)}`);
+    error(`[${fileName}] [${functionName}] Timestamp: ${errorDetails.timestamp}`);
+
+    return errorDetails;
+}
+
+async function testDatabaseConnection() {
+    try {
+        const connection = await mysql.createConnection(dbConfig);
+        await connection.ping();
+        info('[INFO] Database connection successful.');
+        await connection.end();
+    } catch (err) {
+        error(`[ERROR] Database connection failed: ${err.message}`);
+        throw err;
+    }
+}
 
 async function operation({ opType, input, action, authorID, notes, readType, source }) {
     try {
@@ -31,6 +61,8 @@ async function operation({ opType, input, action, authorID, notes, readType, sou
     }
 }
 
+
+
 async function handleReadOperation(source, readType, input) {
     if (source === 'cache') {
         return await readFromCache(readType, input);
@@ -39,25 +71,6 @@ async function handleReadOperation(source, readType, input) {
     } else {
         throw new Error(`Invalid source: ${source}`);
     }
-}
-
-function logDetailedError(functionName, fileName, error, variables) {
-    const errorDetails = {
-        status: 500,
-        file: fileName,
-        function: functionName,
-        message: error.message,
-        stack: error.stack,
-        variables,
-        timestamp: new Date().toISOString(),
-    };
-
-    error(`[${fileName}] [${functionName}] Message: ${error.message}`);
-    error(`[${fileName}] [${functionName}] Stack Trace: ${error.stack}`);
-    error(`[${fileName}] [${functionName}] Variables: ${JSON.stringify(variables, null, 2)}`);
-    error(`[${fileName}] [${functionName}] Timestamp: ${errorDetails.timestamp}`);
-
-    return errorDetails;
 }
 
 async function addCommand(input, action, authorID, notes) {
@@ -89,16 +102,17 @@ function prepareInsertParams(input, action, authorID, notes) {
     return [input, action, authorID || null, notes || null, null];
 }
 
-function executeInsertQuery(query, params) {
-    return new Promise((resolve, reject) => {
-        connection.query(query, params, (err, results) => {
-            if (err) {
-                return reject(logDetailedError('executeInsertQuery', 'database-operation.js', err, { query, params }));
-            }
-            info(`Command added successfully: ${results}`);
-            resolve(results);
-        });
-    });
+async function executeInsertQuery(query, params) {
+    const connection = await createConnection(dbConfig);
+    try {
+        const [results] = await connection.query(query, params);
+        info(`Command added successfully: ${results}`);
+        return results;
+    } catch (err) {
+        throw logDetailedError('executeInsertQuery', 'database-operation.js', err, { query, params });
+    } finally {
+        await connection.end();
+    }
 }
 
 async function handleCacheUpdates() {
@@ -123,43 +137,43 @@ function validateAction(action) {
 async function removeCommand(input) {
     const query = `DELETE FROM ${table} WHERE word = ?`;
     const params = [input];
-
-    return new Promise((resolve, reject) => {
-        connection.query(query, params, async (err, results) => {
-            if (err) {
-                return reject(logDetailedError('removeCommand', 'database-operation.js', err, { query, params }));
-            }
-            info(`Command removed successfully: ${results}`);
-            await updateCache();
-            try {
-                await validateCache();
-            } catch (validationError) {
-                logDetailedError('removeCommand', 'database-operation.js', validationError, { query, params });
-            }
-            resolve(results);
-        });
-    });
+    const connection = await createConnection(dbConfig);
+    try {
+        const [results] = await connection.query(query, params);
+        info(`Command removed successfully: ${results}`);
+        await updateCache();
+        try {
+            await validateCache();
+        } catch (validationError) {
+            logDetailedError('removeCommand', 'database-operation.js', validationError, { query, params });
+        }
+        return results;
+    } catch (err) {
+        throw logDetailedError('removeCommand', 'database-operation.js', err, { query, params });
+    } finally {
+        await connection.end();
+    }
 }
 
 async function modifyCommand(input, action, notes) {
     const query = `UPDATE ${table} SET action = ?, notes = ? WHERE word = ?`;
-    const params = [action, notes, input];
-
-    return new Promise((resolve, reject) => {
-        connection.query(query, params, async (err, results) => {
-            if (err) {
-                return reject(logDetailedError('modifyCommand', 'database-operation.js', err, { query, params }));
-            }
-            info(`Command modified successfully: $results}`);
-            await updateCache();
-            resolve(results);
-        });
-    });
+    const connection = await createConnection(dbConfig);
+    const params = [input, action, notes];
+    try {
+        const [results] = await connection.query(query, params);
+        info(`Command modified successfully: ${results}`);
+        await updateCache();
+        return results;
+    } catch (err) {
+        throw logDetailedError('modifyCommand', 'database-operation.js', err, { query, params });
+    } finally {
+        await connection.end();
+    }
 }
 
 async function readFromCache(readType, input) {
     try {
-        const cacheData = JSON.parse(fs.readFileSync(cacheFilePath, 'utf8'));
+        const cacheData = JSON.parse(readFileSync(cacheFilePath, 'utf8'));
         return await readFromCacheHelper(readType, input, cacheData);
     } catch (err) {
         throw logDetailedError('readFromCache', 'database-operation.js', err, { readType, input });
@@ -234,15 +248,16 @@ async function readFromDatabase(readType, input) {
             throw new Error(`Invalid read type: ${readType}`);
     }
 
-    return new Promise((resolve, reject) => {
-        connection.query(query, params, (err, results) => {
-            if (err) {
-                return reject(logDetailedError('readFromDatabase', 'database-operation.js', err, { query, params }));
-            }
-            info('Read operation from database successful.');
-            resolve(results);
-        });
-    });
+    const connection = await createConnection(dbConfig);
+    try {
+        const [results] = await connection.query(query, params);
+        info('Read operation from database successful.');
+        return results;
+    } catch (err) {
+        throw logDetailedError('readFromDatabase', 'database-operation.js', err, { query, params });
+    } finally {
+        await connection.end();
+    }
 }
 
-module.exports = { operation };
+export { operation, testDatabaseConnection };

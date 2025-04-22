@@ -1,12 +1,12 @@
-const mysql = require('mysql2/promise');
-const fs = require('fs');
-const { dbConfig, cacheFilePath, table } = require('./cache-config');
+import { createConnection } from 'mysql2/promise';
+import { writeFileSync } from 'fs';
+import { dbConfig, cacheFilePath, table } from './cache-config.js';
 
 async function initializeCache() {
     console.log('[INFO] Initializing cache...');
 
     try {
-        const connection = await mysql.createConnection(dbConfig);
+        const connection = await createConnection(dbConfig);
         const [rows] = await connection.query(`SELECT word, action FROM ${table}`);
         await connection.end();
 
@@ -15,11 +15,11 @@ async function initializeCache() {
             return acc;
         }, {});
 
-        fs.writeFileSync(cacheFilePath, JSON.stringify(cacheData, null, 2), 'utf8');
+        writeFileSync(cacheFilePath, JSON.stringify(cacheData, null, 2), 'utf8');
         console.log(`[SUCCESS] Cache initialized successfully at: ${cacheFilePath}`);
     } catch (err) {
         console.error(`[ERROR] Failed to initialize cache: ${err.message}`);
     }
 }
 
-module.exports = { initializeCache };
+export { initializeCache };

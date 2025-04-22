@@ -1,8 +1,8 @@
-const fs = require('fs');
-const mysql = require('mysql2/promise');
-const { dbConfig, cacheFilePath, table } = require('./cache-config');
-const { info, error, warn } = require('../logger');
-const { markCacheAsUpdated } = require('./cache-integrity-check');
+import { writeFileSync } from 'fs';
+import { createConnection } from 'mysql2/promise';
+import cacheConfig from './cache-config.js';
+import { info, error, warn } from '../logger.js';
+const { dbConfig, cacheFilePath, table } = cacheConfig;
 
 function isValidEntry(entry) {
     // Validate that the entry has the required properties
@@ -38,16 +38,15 @@ async function updateCache() {
         }
 
         info(`[INFO] Fetching data from table: ${table}`);
-        const connection = await mysql.createConnection(dbConfig);
+        const connection = await createConnection(dbConfig);
         const [rows] = await connection.query(`SELECT * FROM ${table}`);
         await connection.end();
 
         const validRows = rows.filter(validateCacheEntry);
 
-        fs.writeFileSync(cacheFilePath, JSON.stringify(validRows, null, 2), 'utf8');
+        writeFileSync(cacheFilePath, JSON.stringify(validRows, null, 2), 'utf8');
         info(`[SUCCESS] Cache updated successfully. Data written to: ${cacheFilePath}`);
 
-        markCacheAsUpdated(); // Mark cache as updated to skip validation
         return { status: 200, message: 'Cache updated successfully.' };
     } catch (err) {
         error(`[ERROR] Failed to update cache: ${err.message}`);
@@ -55,4 +54,4 @@ async function updateCache() {
     }
 }
 
-module.exports = { updateCache };
+export { updateCache };

@@ -1,13 +1,14 @@
-const { info, error } = require('../resources/scripts/logger');
+import { info, error } from '../resources/scripts/logger.js';
+import { commandsCollection } from '../command-handler.js'; // Move require to the top
 
 function startProductionMode() {
     try {
         info('Starting production mode...');
-        const { commandsCollection } = require('../command-handler'); // needs to required so the script runs
+        commandsCollection()
         info('Production Mode initialized.');
     } catch (err) {
         error(`Error in production mode: ${err.message}`);
     }
 }
 
-module.exports = { startProductionMode };
+export { startProductionMode };

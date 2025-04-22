@@ -1,14 +1,8 @@
-require('dotenv').config();
-const { Client, GatewayIntentBits } = require('discord.js');
-const { commandsCollection, registerEventHandlers } = require('./command-handler');
-const { modeConfig } = require('./modes/modeConfig');
-const { info, error } = require('./resources/scripts/logger');
-
-if (!process.env.BOTTOKEN) {
-  console.error("FATAL: BOTTOKEN is required");
-  console.error("Please ensure the BOTTOKEN environment variable is set in your .env file or system environment.");
-  process.exit(1);
-}
+import 'dotenv/config';
+import { Client, GatewayIntentBits } from 'discord.js';
+import { commandsCollection, registerEventHandlers } from './command-handler.js';
+import { configureMode, modeConfig } from './modes/modeConfig.js';
+import { info, error } from './resources/scripts/logger.js';
 
 const client = new Client({
     intents: [
@@ -18,8 +12,35 @@ const client = new Client({
     ],
 });
 
+
+client.on('ready', async () => {
+    try {
+        const startTime = Date.now();
+        console.log(`[DEBUG] Shard initialization started.`);
+
+        const shardId = client.shard?.ids[0] ?? 'N/A';
+
+        if (client.shard) {
+            await client.shard.broadcastEval(function () { return this.readyAt !== null; });
+        } else {
+            console.error('[ERROR] Shard manager is not available.');
+            process.exit(1);
+        }
+
+        const totalGuildCount = await client.shard.broadcastEval(
+            c => c.guilds.cache.size
+        ).then(results => results.reduce((acc, count) => acc + count, 0));
+
+        console.log(`[INFO] Shard ${shardId} is ready. Guilds: ${totalGuildCount}`);
+        console.log(`[DEBUG] Shard initialization completed in ${Date.now() - startTime}ms.`);
+    } catch (err) {
+        console.error(`[ERROR] Failed during shard initialization: ${err.message}`);
+        process.exit(1);
+    }
+});
+
 client.on('interactionCreate', async (interaction) => {
-    console.log(`[DEBUG] Interaction received: ${interaction.commandName}`); // Debug log
+    console.log(`[DEBUG] Interaction received: ${interaction.commandName}`);
 
     if (!interaction.isCommand()) return;
 
@@ -39,6 +60,7 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 try {
+    configureMode();
     modeConfig.logger.info(`Bot starting in ${modeConfig.mode} mode...`);
 
     registerEventHandlers(client);

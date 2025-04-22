@@ -1,19 +1,18 @@
-const fs = require('fs');
-const crypto = require('crypto');
-const mysql = require('mysql2/promise');
-const { dbConfig, cacheFilePath, table } = require('./cache-config');
-const { updateCache } = require('./cache-update');
-const { info, error } = require('../logger');
-
-let skipValidation = false; // Flag to skip validation if cache was just updated
+import { readFileSync } from 'fs';
+import { createHash } from 'crypto';
+import { createConnection } from 'mysql2/promise';
+import { dbConfig, cacheFilePath, table } from './cache-config';
+import updateCache from './cache-update';
+import { info, error } from '../logger';
+import { shouldSkipValidation } from './cache-utils';
 
 function hashData(data) {
-    return crypto.createHash('sha256').update(data).digest('hex');
+    return createHash('sha256').update(data).digest('hex');
 }
 
 async function hashDatabase() {
     try {
-        const connection = await mysql.createConnection(dbConfig);
+        const connection = await createConnection(dbConfig);
         const [rows] = await connection.query(`SELECT * FROM ${table}`);
         await connection.end();
         return hashData(JSON.stringify(rows));
@@ -25,7 +24,7 @@ async function hashDatabase() {
 
 function hashCache() {
     try {
-        const data = fs.readFileSync(cacheFilePath, 'utf8');
+        const data = readFileSync(cacheFilePath, 'utf8');
         return hashData(data);
     } catch (err) {
         error(`[ERROR] Failed to hash cache: ${err.message}`);
@@ -34,9 +33,8 @@ function hashCache() {
 }
 
 async function validateCache() {
-    if (skipValidation) {
-        info('[INFO] Skipping cache validation as it was recently updated.');
-        skipValidation = false; // Reset the flag
+    if (shouldSkipValidation()) {
+        console.info('[INFO] Skipping cache validation as it was recently updated.');
         return;
     }
 
@@ -57,9 +55,4 @@ async function validateCache() {
     }
 }
 
-function markCacheAsUpdated() {
-    skipValidation = true;
-    info('[INFO] Cache marked as updated. Validation will be skipped temporarily.');
-}
-
-module.exports = { validateCache, markCacheAsUpdated };
+export { validateCache };

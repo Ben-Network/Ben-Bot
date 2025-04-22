@@ -1,102 +1,105 @@
-const fs = require('fs');
-const path = require('path');
-const processActivations = require('../resources/scripts/process-activations');
-const { info, warn, error } = require('../resources/scripts/logger');
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
+import { fileURLToPath } from 'url';
+import processActivations from '../resources/scripts/process-activations.js';
+import { info, warn, error } from '../resources/scripts/logger.js';
 
-const ignoreFilePath = path.join(__dirname, '../resources/data/ignored-users.json');
+// add these cus I don't feel like changing everything to use path.join
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = join(__filename, '..');
+
+const ignoreFilePath = join(__dirname, '../resources/data/ignored-users.json');
 
 // Cooldown stuff, nuggets kept spamming it and lagged out my whole damn computer.
 let globalVariables = {
     lastMSGRunTime: 0,
-    GlobalCooldownTime: process.env.MESSAGE_COOLDOWN, // should I make this configurable in env? | Yes.
+    GlobalCooldownTime: process.env.MESSAGE_COOLDOWN || 5000, // should I make this configurable in env? | Yes.
 };
 
-module.exports = {
-    name: 'messageCreate',
-    async execute(message) {
-        info(`messageCreate event triggered by user: ${message.author.id}`);
+export const name = 'messageCreate';
+export async function execute(message) {
+    info(`messageCreate event triggered by user: ${message.author.id}`);
 
-        if (this.isBotMessage(message)) return;
-        if (this.isUserIgnored(message.author.id)) return;
-        if (this.isOnCooldown()) return;
+    if (isBotMessage(message)) return;
+    if (isUserIgnored(message.author.id)) return;
+    if (isOnCooldown()) return;
 
-        const result = await this.processMessage(message);
-        if (this.isInvalidResult(result)) return;
+    const result = await processMessage(message);
+    if (isInvalidResult(result)) return;
 
-        globalVariables.lastMSGRunTime = Date.now();
+    globalVariables.lastMSGRunTime = Date.now();
 
-        try {
-            await this.sendActivationResponse(message, result.action.type, result.action.content);
-        } catch (err) {
-            error(`Failed to send activation response: ${err.message}`);
-        }
-    },
+    try {
+        await sendActivationResponse(message, result.action.type, result.action.content);
+    } catch (err) {
+        error(`Failed to send activation response: ${err.message}`);
+    }
+}
 
-    isBotMessage(message) {
-        if (message.author.bot) {
-            info(`This... This is a bot's message. We don't reply to these.`);
-            return true;
-        }
-        return false;
-    },
+export function isBotMessage(message) {
+    if (message.author.bot) {
+        info(`This... This is a bot's message. We don't reply to these.`);
+        return true;
+    }
+    return false;
+}
 
-    isUserIgnored(userId) {
-        const ignoredUsers = this.loadIgnoredUsers();
-        if (ignoredUsers[userId]) {
-            info(`User ${userId} is opted out so we gon stop this right here :>.`);
-            return true;
-        }
-        return false;
-    },
+export function isUserIgnored(userId) {
+    const ignoredUsers = loadIgnoredUsers();
+    if (ignoredUsers[userId]) {
+        info(`User ${userId} is opted out so we gon stop this right here :>.`);
+        return true;
+    }
+    return false;
+}
 
-    isOnCooldown() {
-        const currentTime = Date.now();
-        if (currentTime - globalVariables.lastMSGRunTime < globalVariables.GlobalCooldownTime) {
-            info('CHILL YOUR BALLSACK');
-            return true;
-        }
-        return false;
-    },
+export function isOnCooldown() {
+    const currentTime = Date.now();
+    if (currentTime - globalVariables.lastMSGRunTime < globalVariables.GlobalCooldownTime) {
+        info('CHILL YOUR BALLSACK');
+        return true;
+    }
+    return false;
+}
 
-    isInvalidResult(result) {
-        if (this.isResultInvalid(result)) {
-            warn('No keyword match found. Better luck next time.');
-            return true;
-        }
-        return false;
-    },
+export function isInvalidResult(result) {
+    if (isResultInvalid(result)) {
+        warn('No keyword match found. Better luck next time.');
+        return true;
+    }
+    return false;
+}
 
-    isResultInvalid(result) {
-        return !result || !result.action?.type || !result.action?.content;
-    },
+function isResultInvalid(result) {
+    return !result || !result.action?.type || !result.action?.content;
+}
 
-    async processMessage(message) {
-        return await processActivations(message.content);
-    },
+export async function processMessage(message) {
+    return await processActivations(message.content);
+}
 
-    async sendActivationResponse(message, type, content) {
-        switch (type) {
-            case 'txt':
-                await message.channel.send(content);
-                break;
-            case 'Lfile':
-                await message.channel.send({ files: [content] });
-                break;
-            case 'Wfile':
-                await message.channel.send(content);
-                break;
-            default:
-                throw new Error(`Unknown activation type: ${type}. Who wrote this?`);
-        }
-    },
+export async function sendActivationResponse(message, type, content) {
+    switch (type) {
+        case 'txt':
+            await message.channel.send(content);
+            break;
+        case 'Lfile':
+            await message.channel.send({ files: [content] });
+            break;
+        case 'Wfile':
+            await message.channel.send(content);
+            break;
+        default:
+            throw new Error(`Unknown activation type: ${type}. Who wrote this?`);
+    }
+}
 
-    loadIgnoredUsers() {
-        if (!fs.existsSync(ignoreFilePath)) {
-            info('Ignore file not found. Creating a new one.');
-            return {};
-        }
-        const data = fs.readFileSync(ignoreFilePath, 'utf8');
-        info('Ignore file loaded successfully.');
-        return JSON.parse(data);
-    },
-};
+export function loadIgnoredUsers() {
+    if (!existsSync(ignoreFilePath)) {
+        info('Ignore file not found. Creating a new one.');
+        return {};
+    }
+    const data = readFileSync(ignoreFilePath, 'utf8');
+    info('Ignore file loaded successfully.');
+    return JSON.parse(data);
+}
