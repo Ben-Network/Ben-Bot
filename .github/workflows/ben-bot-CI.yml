@@ -25,49 +25,62 @@ jobs:
       - name: Lint code
         run: npm run lint
 
-      - name: Empty release-specific files
+      - name: Clear log and cache files
         run: |
-          echo "" > bot.log || true
-          echo "" > resources/cache/cache.json || true
-          echo '{ "hits": null, "miss": null}' > resources/cache/cache-analytics.json || true
-          echo "" > resources/cache/replay.log || true
-        shell: bash
+          # Explicit error handling for each file operation
+          if [ -f "bot.log" ]; then echo "" > bot.log; else echo "bot.log not found - skipping"; fi
+          if [ -f "resources/cache/cache.json" ]; then 
+            echo "" > resources/cache/cache.json
+          else 
+            mkdir -p resources/cache
+            echo '{ "hits": 0, "miss": 0 }' > resources/cache/cache.json
+          fi
+          if [ -f "resources/cache/cache-analytics.json" ]; then 
+            echo '{ "hits": null, "miss": null}' > resources/cache/cache-analytics.json
+          else
+            mkdir -p resources/cache
+            echo '{ "hits": null, "miss": null}' > resources/cache/cache-analytics.json
+          fi
+          if [ -f "resources/cache/replay.log" ]; then 
+            echo "" > resources/cache/replay.log
+          else
+            touch resources/cache/replay.log
+          fi
 
       - name: Validate environment variables
         run: |
-          [[ -z "$BOTTOKEN" || -z "$BOTID" || -z "$OWNERID" ]] && echo "Missing critical env vars" && exit 1
-        shell: bash
+          if [ -z "$BOTTOKEN" ] || [ -z "$BOTID" ] || [ -z "$OWNERID" ]; then
+            echo "::error::Missing critical environment variables"
+            exit 1
+          fi
 
-      - name: Run bot and check for deployment confirmation
+      - name: Run bot and check deployment output
         env:
-          BENBOT_DATABASE: ${{ secrets.BENBOT_DATABASE }} 
-          BENBOT_HOST: ${{ secrets.BENBOT_HOST }} 
-          BENBOT_PASSWORD: ${{ secrets.BENBOT_PASSWORD }} 
-          BENBOT_TABLE: ${{ secrets.BENBOT_TABLE }} 
-          BENBOT_USER: ${{ secrets.BENBOT_USER }} 
-          BOTTOKEN: ${{ secrets.BOTTOKEN }} 
-          BOTID: ${{ secrets.BOTID }} 
-          OWNERID: ${{ secrets.OWNERID }} 
-          BOT_MODE: ${{ vars.BOT_MODE }} 
-          HALT_ON_ERROR: ${{ vars.HALT_ON_ERROR }} 
-          LOG_FILE: ${{ vars.LOG_FILE }} 
-          LOG_TO_CONSOLE: ${{ vars.LOG_TO_CONSOLE }} 
-          LOG_TO_FILE: ${{ vars.LOG_TO_FILE }} 
+          BENBOT_DATABASE: ${{ secrets.BENBOT_DATABASE }}
+          BENBOT_HOST: ${{ secrets.BENBOT_HOST }}
+          BENBOT_PASSWORD: ${{ secrets.BENBOT_PASSWORD }}
+          BENBOT_TABLE: ${{ secrets.BENBOT_TABLE }}
+          BENBOT_USER: ${{ secrets.BENBOT_USER }}
+          BOTTOKEN: ${{ secrets.BOTTOKEN }}
+          BOTID: ${{ secrets.BOTID }}
+          OWNERID: ${{ secrets.OWNERID }}
+          BOT_MODE: ${{ vars.BOT_MODE }}
+          HALT_ON_ERROR: ${{ vars.HALT_ON_ERROR }}
+          LOG_FILE: ${{ vars.LOG_FILE }}
+          LOG_TO_CONSOLE: ${{ vars.LOG_TO_CONSOLE }}
+          LOG_TO_FILE: ${{ vars.LOG_TO_FILE }}
         run: |
-          OUTPUT=$(node bot.js || echo "error")
+          # Run bot and capture output
+          OUTPUT=$(node bot.js 2>&1 || echo "::error::Bot execution failed")
           echo "$OUTPUT"
-          echo "$OUTPUT" | grep -q "Successfully deployed" || (echo "❌ Deployment confirmation missing" && exit 1)
+          
+          # Check for either deployment success message pattern
+          if ! echo "$OUTPUT" | grep -q -E "Successfully deployed [0-9]+ commands|All shards \[[0-9]+\] launched successfully"; then
+            echo "::error::Deployment confirmation missing in output"
+            exit 1
+          fi
 
-      - name: Request review from GitHub Copilot
-        uses: github/cli-action@v1
-        with:
-          script: |
-            gh pr review "$PR_NUMBER" --request --body "Requesting review from GitHub Copilot for deployment readiness."
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-
-  release:
+  version-and-release:
     needs: release-check
     if: ${{ success() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
@@ -75,13 +88,42 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '22'
+
+      - name: Bump patch version
+        run: |
+          current=$(node -p "require('./package.json').version")
+          IFS='.' read -r major minor patch <<< "$current"
+          new_version="$major.$minor.$((patch+1))"
+          echo "Bumping version to $new_version"
+          npm version $new_version --no-git-tag-version
+          echo "new_version=$new_version" >> $GITHUB_ENV
+
+      - name: Generate simple changelog
+        run: |
+          echo "## Changes in v${{ env.new_version }}" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          git log -1 --pretty=format:"- %s" >> CHANGELOG.md
+
+      - name: Commit version bump and changelog
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add package.json package-lock.json CHANGELOG.md
+          git commit -m "chore: bump version to v${{ env.new_version }}"
+          git push
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ env.new_version }}
+          name: Release v${{ env.new_version }}
+          body_path: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ github.run_number }}
-          release_name: Release v${{ github.run_number }}
-          draft: false
-          prerelease: false
