@@ -63,7 +63,7 @@ export function isOnCooldown() {
 }
 
 export function isInvalidResult(result) {
-    if (isResultInvalid.call(this, result)) {
+    if (isResultInvalid(result)) {
         warn('No keyword match found. Better luck next time.');
         return true;
     }
