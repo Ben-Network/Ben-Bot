@@ -107,6 +107,7 @@ jobs:
             "Ready! Logged in as"
             "Client ready"
             "All systems operational"
+            "Existing commands cleared."
           )
           PATTERN=$(IFS="|"; echo "${SUCCESS_PATTERNS[*]}")
 
