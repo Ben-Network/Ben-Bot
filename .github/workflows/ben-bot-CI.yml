@@ -9,7 +9,6 @@ on:
 jobs:
   release-check:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -22,43 +21,28 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Lint code
-        run: npm run lint || echo "::warning::Linting failed (non-blocking)"
+      - name: Lint code (non-blocking)
+        continue-on-error: true
+        run: npm run lint
 
       - name: Clear log and cache files
         run: |
-          # Ensure the resources/cache directory exists
-          mkdir -p resources/cache
-          
-          # Explicit error handling for each file operation
           if [ -f "bot.log" ]; then echo "" > bot.log; else echo "bot.log not found - skipping"; fi
           if [ -f "resources/cache/cache.json" ]; then 
             echo "" > resources/cache/cache.json
           else 
+            mkdir -p resources/cache
             echo '{ "hits": 0, "miss": 0 }' > resources/cache/cache.json
-          fi
-          if [ -f "resources/cache/cache-analytics.json" ]; then 
-            echo '{ "hits": null, "miss": null}' > resources/cache/cache-analytics.json
-          else
-            echo '{ "hits": null, "miss": null}' > resources/cache/cache-analytics.json
-          fi
-          if [ -f "resources/cache/replay.log" ]; then 
-            echo "" > resources/cache/replay.log
-          else
-            touch resources/cache/replay.log
           fi
 
       - name: Validate environment variables
         run: |
-          MISSING_VARS=""
-          if [ -z "$BOTTOKEN" ]; then MISSING_VARS="$MISSING_VARS BOTTOKEN"; fi
-          if [ -z "$BOTID" ]; then MISSING_VARS="$MISSING_VARS BOTID"; fi
-          if [ -z "$OWNERID" ]; then MISSING_VARS="$MISSING_VARS OWNERID"; fi
-          if [ -n "$MISSING_VARS" ]; then
-            echo "::error::Missing critical environment variables:$MISSING_VARS"
+          if [ -z "$BOTTOKEN" ] || [ -z "$BOTID" ] || [ -z "$OWNERID" ]; then
+            echo "::error::Missing critical environment variables"
+            exit 1
           fi
 
-      - name: Run bot and check deployment output
+      - name: Run bot and verify deployment (with real-time logs)
         env:
           BENBOT_DATABASE: ${{ secrets.BENBOT_DATABASE }}
           BENBOT_HOST: ${{ secrets.BENBOT_HOST }}
@@ -74,21 +58,33 @@ jobs:
           LOG_TO_CONSOLE: ${{ vars.LOG_TO_CONSOLE }}
           LOG_TO_FILE: ${{ vars.LOG_TO_FILE }}
         run: |
-          # Run bot and capture output
-          OUTPUT=$(node bot.js 2>&1 || echo "::error::Bot execution failed")
-          echo "$OUTPUT"
+          # Start bot in background and pipe logs to file
+          node bot.js > bot.log 2>&1 &
+          BOT_PID=$!
+          echo "Bot started in background (PID: $BOT_PID)"
           
-          # Check for either deployment success message pattern
-          if ! echo "$OUTPUT" | grep -q -E "Successfully deployed [0-9]+ commands|All shards \[[0-9]+\] launched successfully"; then
-            echo "::error::Deployment confirmation missing in output"
-            exit 1
-          fi
+          # Wait for deployment (max 30 seconds)
+          echo "Waiting for deployment confirmation..."
+          for i in {1..30}; do
+            if grep -q -E "Successfully deployed [0-9]+ commands|All shards \[[0-9]+\] launched successfully" bot.log; then
+              echo "✅ Deployment successful!"
+              kill $BOT_PID
+              exit 0
+            fi
+            sleep 1
+          done
+          
+          # If we get here, the bot didn't print success message
+          echo "::error::Deployment confirmation not found within 30 seconds"
+          echo "=== Last 20 lines of bot.log ==="
+          tail -n 20 bot.log
+          kill $BOT_PID
+          exit 1
 
   version-and-release:
     needs: release-check
     if: ${{ success() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
