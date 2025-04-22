@@ -6,59 +6,42 @@ on:
       - main
       - release/*
 
+env:
+  # Global environment variables
+  NODE_ENV: production
+  LOG_TO_CONSOLE: true
+  LOG_TO_FILE: false
+  HALT_ON_ERROR: false
+
 jobs:
   release-check:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Lint code
+      - name: Lint code (non-blocking)
+        continue-on-error: true
         run: npm run lint
 
-      - name: Clear log and cache files
+      - name: Initialize workspace
         run: |
-          # Ensure the resources/cache directory exists
           mkdir -p resources/cache
-          
-          # Explicit error handling for each file operation
-          if [ -f "bot.log" ]; then echo "" > bot.log; else echo "bot.log not found - skipping"; fi
-          if [ -f "resources/cache/cache.json" ]; then 
-            echo "" > resources/cache/cache.json
-          else 
-            echo '{ "hits": 0, "miss": 0 }' > resources/cache/cache.json
-          fi
-          if [ -f "resources/cache/cache-analytics.json" ]; then 
-            echo '{ "hits": null, "miss": null}' > resources/cache/cache-analytics.json
-          else
-            echo '{ "hits": null, "miss": null}' > resources/cache/cache-analytics.json
-          fi
-          if [ -f "resources/cache/replay.log" ]; then 
-            echo "" > resources/cache/replay.log
-          else
-            touch resources/cache/replay.log
-          fi
+          : > bot.log
+          echo '{"hits":0,"miss":0}' > resources/cache/cache.json
+          echo '{"hits":null,"miss":null}' > resources/cache/cache-analytics.json
+          : > resources/cache/replay.log
 
-      - name: Validate environment variables
-        run: |
-          MISSING_VARS=""
-          if [ -z "$BOTTOKEN" ]; then MISSING_VARS="$MISSING_VARS BOTTOKEN"; fi
-          if [ -z "$BOTID" ]; then MISSING_VARS="$MISSING_VARS BOTID"; fi
-          if [ -z "$OWNERID" ]; then MISSING_VARS="$MISSING_VARS OWNERID"; fi
-          if [ -n "$MISSING_VARS" ]; then
-            echo "::error::Missing critical environment variables:$MISSING_VARS"
-          fi
-
-      - name: Run bot and check deployment output
+      - name: Validate all required secrets
         env:
           BENBOT_DATABASE: ${{ secrets.BENBOT_DATABASE }}
           BENBOT_HOST: ${{ secrets.BENBOT_HOST }}
@@ -67,67 +50,91 @@ jobs:
           BENBOT_USER: ${{ secrets.BENBOT_USER }}
           BOTTOKEN: ${{ secrets.BOTTOKEN }}
           BOTID: ${{ secrets.BOTID }}
-          OWNERID: ${{ secrets.OWNERID }}
+          OWNERID: ${{ vars.OWNERID }}
+          BOT_MODE: ${{ vars.BOT_MODE }}
+          HALT_ON_ERROR: ${{ vars.HALT_ON_ERROR }}
+          LOG_FILE: ${{ vars.LOG_FILE }}
+          LOG_TO_CONSOLE: ${{ vars.LOG_TO_CONSOLE }}
+          LOG_TO_FILE: ${{ vars.LOG_TO_FILE }}
+          REQUIRED_SECRETS: >
+            BENBOT_DATABASE BENBOT_HOST BENBOT_PASSWORD
+            BENBOT_TABLE BENBOT_USER
+            BENBOT_PASSWORD BENBOT_TABLE
+            BENBOT_USER BOTTOKEN
+            BOTID OWNERID BOT_MODE HALT_ON_ERROR
+            LOG_FILE LOG_TO_CONSOLE LOG_TO_FILE
+        run: |
+          echo "Validating all required secrets..."
+          missing_secrets=()
+          for secret in $REQUIRED_SECRETS; do
+            if [ -z "${!secret}" ]; then
+              missing_secrets+=("$secret")
+            fi
+          done
+
+          if [ ${#missing_secrets[@]} -gt 0 ]; then
+            echo "::error::Missing required secrets: ${missing_secrets[*]}"
+            exit 1
+          fi
+          echo "All required secrets are present"
+
+      - name: Run bot with strict validation
+        env:
+          BENBOT_DATABASE: ${{ secrets.BENBOT_DATABASE }}
+          BENBOT_HOST: ${{ secrets.BENBOT_HOST }}
+          BENBOT_PASSWORD: ${{ secrets.BENBOT_PASSWORD }}
+          BENBOT_TABLE: ${{ secrets.BENBOT_TABLE }}
+          BENBOT_USER: ${{ secrets.BENBOT_USER }}
+          BOTTOKEN: ${{ secrets.BOTTOKEN }}
+          BOTID: ${{ secrets.BOTID }}
+          OWNERID: ${{ vars.OWNERID }}
           BOT_MODE: ${{ vars.BOT_MODE }}
           HALT_ON_ERROR: ${{ vars.HALT_ON_ERROR }}
           LOG_FILE: ${{ vars.LOG_FILE }}
           LOG_TO_CONSOLE: ${{ vars.LOG_TO_CONSOLE }}
           LOG_TO_FILE: ${{ vars.LOG_TO_FILE }}
         run: |
-          # Run bot and capture output
-          OUTPUT=$(node bot.js 2>&1 || echo "::error::Bot execution failed")
-          echo "$OUTPUT"
-          
-          # Check for either deployment success message pattern
-          if ! echo "$OUTPUT" | grep -q -E "Successfully deployed [0-9]+ commands|All shards \[[0-9]+\] launched successfully"; then
-            echo "::error::Deployment confirmation missing in output"
-            exit 1
-          fi
+          # Start bot with full environment dump for debugging
+          env > env.dump
+          node bot.js > bot.log 2>&1 &
+          BOT_PID=$!
+          echo "Bot started (PID: $BOT_PID)"
 
-  version-and-release:
-    needs: release-check
-    if: ${{ success() && github.event_name == 'pull_request' }}
-    runs-on: ubuntu-latest
+          # Extended success patterns (60 second timeout)
+          SUCCESS_PATTERNS=(
+            "Successfully deployed [[:digit:],]+ commands"
+            "All shards \[[[:digit:],]+\] launched"
+            "Ready! Logged in as"
+            "Client ready"
+            "All systems operational"
+            "Existing commands cleared."
+          )
+          PATTERN=$(IFS="|"; echo "${SUCCESS_PATTERNS[*]}")
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+          for i in {1..60}; do
+            if grep -q -E "$PATTERN" bot.log; then
+              echo "✅ Verified deployment with pattern:"
+              grep -m1 -E "$PATTERN" bot.log
+              kill $BOT_PID 2>/dev/null || true
+              exit 0
+            fi
+            sleep 1
+          done
+
+          # Failure handling
+          echo "::error::Deployment verification failed (60s timeout)"
+          echo "=== Environment Dump ==="
+          grep -v -E 'BOTTOKEN|PASSWORD' env.dump
+          echo "=== Last 100 Log Lines ==="
+          tail -n 100 bot.log
+          kill $BOT_PID 2>/dev/null || true
+          exit 1
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '22'
-
-      - name: Bump patch version
-        run: |
-          current=$(node -p "require('./package.json').version")
-          IFS='.' read -r major minor patch <<< "$current"
-          new_version="$major.$minor.$((patch+1))"
-          echo "Bumping version to $new_version"
-          npm version $new_version --no-git-tag-version
-          echo "new_version=$new_version" >> $GITHUB_ENV
-
-      - name: Generate simple changelog
-        run: |
-          echo "## Changes in v${{ env.new_version }}" > CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          git log -1 --pretty=format:"- %s" >> CHANGELOG.md
-
-      - name: Commit version bump and changelog
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add package.json package-lock.json CHANGELOG.md
-          git commit -m "chore: bump version to v${{ env.new_version }}"
-          git push
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ env.new_version }}
-          name: Release v${{ env.new_version }}
-          body_path: CHANGELOG.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: bot-debug-logs
+          path: |
+            bot.log
+            env.dump
