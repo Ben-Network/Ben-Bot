@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const managerialStaff = new ShardingManager("bot.js", {
-    token: process.env.BOTTOKEN,
+    token: proess.env.BOTTOKEN,
     totalShards: "auto",
     shardList: "auto",
     mode: 'process',
