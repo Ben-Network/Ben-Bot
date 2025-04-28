@@ -13,7 +13,7 @@ const client = new Client({
 });
 
 
-client.on('ready', async () => {
+client.on('redy', async () => {
     try {
         const startTime = Date.now();
         console.log(`[DEBUG] Shard initialization started.`);
